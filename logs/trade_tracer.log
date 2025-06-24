@@ -1,0 +1,180 @@
+2025-06-24 11:50:12,047 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log
+2025-06-24 11:50:12,059 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log
+2025-06-24 11:50:12,059 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log
+2025-06-24 11:50:21,776 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00000
+2025-06-24 11:50:21,776 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00000
+2025-06-24 11:50:21,776 - utils.trade_tracer - INFO - Trade opened: TRADE_00000 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51842.28
+2025-06-24 11:50:21,776 - utils.trade_tracer - INFO - Trade opened: TRADE_00000 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51842.28
+2025-06-24 11:50:29,703 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00001
+2025-06-24 11:50:29,703 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00001
+2025-06-24 11:50:29,703 - utils.trade_tracer - INFO - Trade opened: TRADE_00001 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51577.62
+2025-06-24 11:50:29,703 - utils.trade_tracer - INFO - Trade opened: TRADE_00001 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51577.62
+2025-06-24 11:50:30,225 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00002
+2025-06-24 11:50:30,225 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00002
+2025-06-24 11:50:30,225 - utils.trade_tracer - INFO - Trade opened: TRADE_00002 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51889.32
+2025-06-24 11:50:30,225 - utils.trade_tracer - INFO - Trade opened: TRADE_00002 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51889.32
+2025-06-24 11:50:33,615 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00003
+2025-06-24 11:50:33,615 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00003
+2025-06-24 11:50:33,616 - utils.trade_tracer - INFO - Trade opened: TRADE_00003 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51684.37
+2025-06-24 11:50:33,616 - utils.trade_tracer - INFO - Trade opened: TRADE_00003 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51684.37
+2025-06-24 11:50:33,991 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00004
+2025-06-24 11:50:33,991 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00004
+2025-06-24 11:50:33,991 - utils.trade_tracer - INFO - Trade opened: TRADE_00004 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 52021.41
+2025-06-24 11:50:33,991 - utils.trade_tracer - INFO - Trade opened: TRADE_00004 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 52021.41
+2025-06-24 11:50:37,314 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00005
+2025-06-24 11:50:37,314 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00005
+2025-06-24 11:50:37,314 - utils.trade_tracer - INFO - Trade opened: TRADE_00005 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 54076.72
+2025-06-24 11:50:37,314 - utils.trade_tracer - INFO - Trade opened: TRADE_00005 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 54076.72
+2025-06-24 11:50:37,838 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00006
+2025-06-24 11:50:37,838 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00006
+2025-06-24 11:50:37,838 - utils.trade_tracer - INFO - Trade opened: TRADE_00006 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 54197.31
+2025-06-24 11:50:37,838 - utils.trade_tracer - INFO - Trade opened: TRADE_00006 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 54197.31
+2025-06-24 11:50:41,363 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00007
+2025-06-24 11:50:41,363 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00007
+2025-06-24 11:50:41,364 - utils.trade_tracer - INFO - Trade opened: TRADE_00007 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55694.85
+2025-06-24 11:50:41,364 - utils.trade_tracer - INFO - Trade opened: TRADE_00007 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55694.85
+2025-06-24 11:50:42,698 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00008
+2025-06-24 11:50:42,698 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00008
+2025-06-24 11:50:42,699 - utils.trade_tracer - INFO - Trade opened: TRADE_00008 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55763.86
+2025-06-24 11:50:42,699 - utils.trade_tracer - INFO - Trade opened: TRADE_00008 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55763.86
+2025-06-24 11:50:43,187 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00009
+2025-06-24 11:50:43,187 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00009
+2025-06-24 11:50:43,187 - utils.trade_tracer - INFO - Trade opened: TRADE_00009 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55601.50
+2025-06-24 11:50:43,187 - utils.trade_tracer - INFO - Trade opened: TRADE_00009 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55601.50
+2025-06-24 11:50:43,333 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00010
+2025-06-24 11:50:43,333 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00010
+2025-06-24 11:50:43,333 - utils.trade_tracer - INFO - Trade opened: TRADE_00010 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55413.94
+2025-06-24 11:50:43,333 - utils.trade_tracer - INFO - Trade opened: TRADE_00010 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55413.94
+2025-06-24 11:50:43,735 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00011
+2025-06-24 11:50:43,735 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00011
+2025-06-24 11:50:43,735 - utils.trade_tracer - INFO - Trade opened: TRADE_00011 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55450.95
+2025-06-24 11:50:43,735 - utils.trade_tracer - INFO - Trade opened: TRADE_00011 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55450.95
+2025-06-24 11:50:45,411 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00012
+2025-06-24 11:50:45,411 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00012
+2025-06-24 11:50:45,412 - utils.trade_tracer - INFO - Trade opened: TRADE_00012 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55646.30
+2025-06-24 11:50:45,412 - utils.trade_tracer - INFO - Trade opened: TRADE_00012 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55646.30
+2025-06-24 11:50:55,143 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00013
+2025-06-24 11:50:55,143 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00013
+2025-06-24 11:50:55,143 - utils.trade_tracer - INFO - Trade opened: TRADE_00013 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60410.02
+2025-06-24 11:50:55,143 - utils.trade_tracer - INFO - Trade opened: TRADE_00013 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60410.02
+2025-06-24 11:50:58,142 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00014
+2025-06-24 11:50:58,142 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00014
+2025-06-24 11:50:58,142 - utils.trade_tracer - INFO - Trade opened: TRADE_00014 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62602.27
+2025-06-24 11:50:58,142 - utils.trade_tracer - INFO - Trade opened: TRADE_00014 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62602.27
+2025-06-24 11:50:58,505 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00015
+2025-06-24 11:50:58,505 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00015
+2025-06-24 11:50:58,506 - utils.trade_tracer - INFO - Trade opened: TRADE_00015 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62219.96
+2025-06-24 11:50:58,506 - utils.trade_tracer - INFO - Trade opened: TRADE_00015 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62219.96
+2025-06-24 11:51:07,071 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00016
+2025-06-24 11:51:07,071 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00016
+2025-06-24 11:51:07,072 - utils.trade_tracer - INFO - Trade opened: TRADE_00016 - SHORT 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61983.84
+2025-06-24 11:51:07,072 - utils.trade_tracer - INFO - Trade opened: TRADE_00016 - SHORT 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61983.84
+2025-06-24 11:51:07,205 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00017
+2025-06-24 11:51:07,205 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00017
+2025-06-24 11:51:07,205 - utils.trade_tracer - INFO - Trade opened: TRADE_00017 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61680.65
+2025-06-24 11:51:07,205 - utils.trade_tracer - INFO - Trade opened: TRADE_00017 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61680.65
+2025-06-24 11:51:07,419 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00018
+2025-06-24 11:51:07,419 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00018
+2025-06-24 11:51:07,420 - utils.trade_tracer - INFO - Trade opened: TRADE_00018 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62288.06
+2025-06-24 11:51:07,420 - utils.trade_tracer - INFO - Trade opened: TRADE_00018 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62288.06
+2025-06-24 11:51:10,452 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00019
+2025-06-24 11:51:10,452 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00019
+2025-06-24 11:51:10,453 - utils.trade_tracer - INFO - Trade opened: TRADE_00019 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62279.93
+2025-06-24 11:51:10,453 - utils.trade_tracer - INFO - Trade opened: TRADE_00019 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62279.93
+2025-06-24 11:51:12,523 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00020
+2025-06-24 11:51:12,523 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00020
+2025-06-24 11:51:12,523 - utils.trade_tracer - INFO - Trade opened: TRADE_00020 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60941.37
+2025-06-24 11:51:12,523 - utils.trade_tracer - INFO - Trade opened: TRADE_00020 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60941.37
+2025-06-24 11:51:12,836 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00021
+2025-06-24 11:51:12,836 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00021
+2025-06-24 11:51:12,836 - utils.trade_tracer - INFO - Trade opened: TRADE_00021 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61725.23
+2025-06-24 11:51:12,836 - utils.trade_tracer - INFO - Trade opened: TRADE_00021 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61725.23
+2025-06-24 11:51:13,923 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00022
+2025-06-24 11:51:13,923 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00022
+2025-06-24 11:51:13,923 - utils.trade_tracer - INFO - Trade opened: TRADE_00022 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 64002.18
+2025-06-24 11:51:13,923 - utils.trade_tracer - INFO - Trade opened: TRADE_00022 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 64002.18
+2025-06-24 11:51:14,403 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00023
+2025-06-24 11:51:14,403 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00023
+2025-06-24 11:51:14,403 - utils.trade_tracer - INFO - Trade opened: TRADE_00023 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63729.22
+2025-06-24 11:51:14,403 - utils.trade_tracer - INFO - Trade opened: TRADE_00023 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63729.22
+2025-06-24 11:51:14,442 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00024
+2025-06-24 11:51:14,442 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00024
+2025-06-24 11:51:14,442 - utils.trade_tracer - INFO - Trade opened: TRADE_00024 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63715.73
+2025-06-24 11:51:14,442 - utils.trade_tracer - INFO - Trade opened: TRADE_00024 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63715.73
+2025-06-24 11:51:15,312 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00025
+2025-06-24 11:51:15,312 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00025
+2025-06-24 11:51:15,312 - utils.trade_tracer - INFO - Trade opened: TRADE_00025 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62962.57
+2025-06-24 11:51:15,312 - utils.trade_tracer - INFO - Trade opened: TRADE_00025 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62962.57
+2025-06-24 11:51:15,714 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00026
+2025-06-24 11:51:15,714 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00026
+2025-06-24 11:51:15,715 - utils.trade_tracer - INFO - Trade opened: TRADE_00026 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63803.67
+2025-06-24 11:51:15,715 - utils.trade_tracer - INFO - Trade opened: TRADE_00026 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63803.67
+2025-06-24 11:51:15,920 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00027
+2025-06-24 11:51:15,920 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00027
+2025-06-24 11:51:15,921 - utils.trade_tracer - INFO - Trade opened: TRADE_00027 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63860.14
+2025-06-24 11:51:15,921 - utils.trade_tracer - INFO - Trade opened: TRADE_00027 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63860.14
+2025-06-24 11:51:19,122 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00028
+2025-06-24 11:51:19,122 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00028
+2025-06-24 11:51:19,122 - utils.trade_tracer - INFO - Trade opened: TRADE_00028 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63253.21
+2025-06-24 11:51:19,122 - utils.trade_tracer - INFO - Trade opened: TRADE_00028 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63253.21
+2025-06-24 11:51:19,431 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00029
+2025-06-24 11:51:19,431 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00029
+2025-06-24 11:51:19,431 - utils.trade_tracer - INFO - Trade opened: TRADE_00029 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62078.14
+2025-06-24 11:51:19,431 - utils.trade_tracer - INFO - Trade opened: TRADE_00029 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62078.14
+2025-06-24 11:51:22,149 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00030
+2025-06-24 11:51:22,149 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00030
+2025-06-24 11:51:22,149 - utils.trade_tracer - INFO - Trade opened: TRADE_00030 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61981.24
+2025-06-24 11:51:22,149 - utils.trade_tracer - INFO - Trade opened: TRADE_00030 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61981.24
+2025-06-24 11:51:22,446 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00031
+2025-06-24 11:51:22,446 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00031
+2025-06-24 11:51:22,446 - utils.trade_tracer - INFO - Trade opened: TRADE_00031 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62449.77
+2025-06-24 11:51:22,446 - utils.trade_tracer - INFO - Trade opened: TRADE_00031 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62449.77
+2025-06-24 11:51:24,803 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00032
+2025-06-24 11:51:24,803 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00032
+2025-06-24 11:51:24,804 - utils.trade_tracer - INFO - Trade opened: TRADE_00032 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63280.19
+2025-06-24 11:51:24,804 - utils.trade_tracer - INFO - Trade opened: TRADE_00032 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63280.19
+2025-06-24 11:51:24,888 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00033
+2025-06-24 11:51:24,888 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00033
+2025-06-24 11:51:24,888 - utils.trade_tracer - INFO - Trade opened: TRADE_00033 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63346.65
+2025-06-24 11:51:24,888 - utils.trade_tracer - INFO - Trade opened: TRADE_00033 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63346.65
+2025-06-24 11:51:30,387 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00034
+2025-06-24 11:51:30,387 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00034
+2025-06-24 11:51:30,388 - utils.trade_tracer - INFO - Trade opened: TRADE_00034 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63935.03
+2025-06-24 11:51:30,388 - utils.trade_tracer - INFO - Trade opened: TRADE_00034 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63935.03
+2025-06-24 11:51:31,734 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00035
+2025-06-24 11:51:31,734 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00035
+2025-06-24 11:51:31,734 - utils.trade_tracer - INFO - Trade opened: TRADE_00035 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60155.40
+2025-06-24 11:51:31,734 - utils.trade_tracer - INFO - Trade opened: TRADE_00035 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60155.40
+2025-06-24 11:51:31,904 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00036
+2025-06-24 11:51:31,904 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00036
+2025-06-24 11:51:31,904 - utils.trade_tracer - INFO - Trade opened: TRADE_00036 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61107.54
+2025-06-24 11:51:31,904 - utils.trade_tracer - INFO - Trade opened: TRADE_00036 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61107.54
+2025-06-24 11:59:53,926 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log
+2025-06-24 11:59:55,580 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00000
+2025-06-24 11:59:55,580 - utils.trade_tracer - INFO - Trade opened: TRADE_00000 - LONG 0.024000 BINANCEFTS_PERP_BTC_USDT @ 45202.90
+2025-06-24 11:59:55,663 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00001
+2025-06-24 11:59:55,664 - utils.trade_tracer - INFO - Trade opened: TRADE_00001 - LONG 0.002000 BINANCEFTS_PERP_BTC_USDT @ 45569.90
+2025-06-24 11:59:55,764 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00002
+2025-06-24 11:59:55,764 - utils.trade_tracer - INFO - Trade opened: TRADE_00002 - LONG 0.012000 BINANCEFTS_PERP_BTC_USDT @ 44825.20
+2025-06-24 11:59:55,782 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00003
+2025-06-24 11:59:55,782 - utils.trade_tracer - INFO - Trade opened: TRADE_00003 - LONG 0.006000 BINANCEFTS_PERP_BTC_USDT @ 45193.00
+2025-06-24 11:59:55,836 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00004
+2025-06-24 11:59:55,836 - utils.trade_tracer - INFO - Trade opened: TRADE_00004 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 45312.10
+2025-06-24 11:59:55,870 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00005
+2025-06-24 11:59:55,870 - utils.trade_tracer - INFO - Trade opened: TRADE_00005 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 45192.50
+2025-06-24 11:59:56,041 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00006
+2025-06-24 11:59:56,041 - utils.trade_tracer - INFO - Trade opened: TRADE_00006 - LONG 0.004000 BINANCEFTS_PERP_BTC_USDT @ 42794.90
+2025-06-24 11:59:56,046 - utils.trade_tracer - DEBUG - Trace event 'INVALID_ACTION' written for trade N/A
+2025-06-24 11:59:56,046 - utils.trade_tracer - DEBUG - Invalid action logged: Episode 0, Batch 0, Action: BUY_REJECTED - Failed to open long trade (insufficient balance, liquidation risk, or size too small)
+2025-06-24 11:59:56,064 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00007
+2025-06-24 11:59:56,064 - utils.trade_tracer - INFO - Trade opened: TRADE_00007 - LONG 0.004000 BINANCEFTS_PERP_BTC_USDT @ 42267.60
+2025-06-24 11:59:56,196 - utils.trade_tracer - DEBUG - Trace event 'INVALID_ACTION' written for trade N/A
+2025-06-24 11:59:56,197 - utils.trade_tracer - DEBUG - Invalid action logged: Episode 0, Batch 0, Action: BUY_REJECTED - Failed to open long trade (insufficient balance, liquidation risk, or size too small)
+2025-06-24 11:59:56,258 - utils.trade_tracer - DEBUG - Trace event 'INVALID_ACTION' written for trade N/A
+2025-06-24 11:59:56,259 - utils.trade_tracer - DEBUG - Invalid action logged: Episode 0, Batch 0, Action: BUY_REJECTED - Failed to open long trade (insufficient balance, liquidation risk, or size too small)
+2025-06-24 11:59:56,285 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00008
+2025-06-24 11:59:56,285 - utils.trade_tracer - INFO - Trade opened: TRADE_00008 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 43028.90
+2025-06-24 11:59:56,326 - utils.trade_tracer - DEBUG - Trace event 'INVALID_ACTION' written for trade N/A
+2025-06-24 11:59:56,326 - utils.trade_tracer - DEBUG - Invalid action logged: Episode 0, Batch 0, Action: BUY_REJECTED - Failed to open long trade (insufficient balance, liquidation risk, or size too small)
+2025-06-24 11:59:56,350 - utils.trade_tracer - DEBUG - Trace event 'INVALID_ACTION' written for trade N/A
+2025-06-24 11:59:56,350 - utils.trade_tracer - DEBUG - Invalid action logged: Episode 0, Batch 0, Action: BUY_REJECTED - Failed to open long trade (insufficient balance, liquidation risk, or size too small)

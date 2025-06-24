@@ -1,0 +1,14 @@
+2025-06-24 10:53:42 - __main__ - INFO - Initialized MemoryEfficientTrainingManager
+2025-06-24 10:53:42 - data.setup_data - INFO - Initialized DataProcessor with lookback_window=20
+2025-06-24 10:53:42 - __main__ - INFO - Memory usage Initialization: 461.7 MB (2.9%)
+2025-06-24 10:53:42 - __main__ - INFO - MemoryEfficientTrainingManager initialized.
+2025-06-24 10:53:42 - __main__ - INFO - Starting memory-efficient training pipeline
+2025-06-24 10:53:42 - __main__ - INFO - Loading entire dataset from .\data\processed\BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv for the episode...
+2025-06-24 10:53:42 - __main__ - INFO - Loaded 43837 rows.
+2025-06-24 10:53:42 - __main__ - INFO - Starting Episode 1/1
+2025-06-24 10:53:42 - __main__ - ERROR - Error processing data batch: DataProcessor.prepare_data() got an unexpected keyword argument 'fit_scalers'
+2025-06-24 10:53:42 - __main__ - INFO - Using ULTRA_SMALL_TRANSACTION_CONFIG for reward system.
+2025-06-24 10:53:42 - __main__ - INFO - Creating training environment for the first time...
+2025-06-24 10:53:42 - __main__ - ERROR - Failed to create/update environments: 'NoneType' object has no attribute 'copy'
+2025-06-24 10:53:42 - __main__ - INFO - Starting cleanup process...
+2025-06-24 10:53:42 - __main__ - INFO - Closing logging handlers...

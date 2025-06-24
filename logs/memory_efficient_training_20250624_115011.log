@@ -1,0 +1,244 @@
+2025-06-24 11:50:11 - __main__ - INFO - Initialized MemoryEfficientTrainingManager
+2025-06-24 11:50:11 - data.setup_data - INFO - Initialized DataProcessor with lookback_window=20
+2025-06-24 11:50:11 - __main__ - INFO - Memory usage Initialization: 460.1 MB (2.9%)
+2025-06-24 11:50:11 - __main__ - INFO - MemoryEfficientTrainingManager initialized.
+2025-06-24 11:50:11 - __main__ - INFO - Starting memory-efficient training pipeline
+2025-06-24 11:50:11 - __main__ - INFO - Loading entire dataset from .\data\processed\BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv for the episode...
+2025-06-24 11:50:11 - __main__ - INFO - Loaded 43837 rows.
+2025-06-24 11:50:11 - __main__ - INFO - Starting Episode 1/1
+2025-06-24 11:50:11 - __main__ - INFO - Initializing streaming reader for: .\data\processed\BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv
+2025-06-24 11:50:11 - __main__ - INFO - Analyzed file: 43837 rows, columns: ['_temp_index', 'open', 'high', 'low', 'close', 'volume', 'timestamp']
+2025-06-24 11:50:11 - __main__ - INFO - StreamingDataReader initialized for file: data\processed\BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv
+2025-06-24 11:50:11 - __main__ - INFO - File contains 43837 rows, 7 columns
+2025-06-24 11:50:11 - __main__ - INFO - Data file info: 43837 rows, 7 columns
+2025-06-24 11:50:11 - data.setup_data - INFO - Starting complete data preparation pipeline...
+2025-06-24 11:50:11 - data.setup_data - INFO - Adding technical indicators...
+2025-06-24 11:50:11 - data.setup_data - INFO - Added technical indicators. Shape: (43837, 35)
+2025-06-24 11:50:11 - data.setup_data - INFO - Adding futures-specific features...
+2025-06-24 11:50:11 - data.setup_data - INFO - No funding rate data available - skipping funding rate features
+2025-06-24 11:50:11 - data.setup_data - INFO - Added futures-specific features
+2025-06-24 11:50:11 - data.setup_data - INFO - Added time-based features
+2025-06-24 11:50:11 - data.setup_data - INFO - Split data: Train 35069 rows, Test 8768 rows
+2025-06-24 11:50:11 - data.setup_data - INFO - Normalizing data (fit_scaler=True)...
+2025-06-24 11:50:11 - data.setup_data - INFO - Data normalization completed
+2025-06-24 11:50:11 - data.setup_data - INFO - Normalizing data (fit_scaler=False)...
+2025-06-24 11:50:11 - data.setup_data - INFO - Data normalization completed
+2025-06-24 11:50:12 - data.setup_data - INFO - Data preparation completed. Train: (35020, 47), Test: (8768, 47)
+2025-06-24 11:50:12 - __main__ - INFO - Using ULTRA_SMALL_TRANSACTION_CONFIG for reward system.
+2025-06-24 11:50:12 - __main__ - INFO - Creating training environment for the first time...
+2025-06-24 11:50:12 - utils.trade_logger - INFO - Initialized TradeLogger: logs\trades\training_trades.csv
+2025-06-24 11:50:12 - utils.trade_logger - INFO - Session initialized with starting balance: $10000.00
+2025-06-24 11:50:12 - environment - INFO - Trade logger initialized with session: training_session_ep001_batch000
+2025-06-24 11:50:12 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log
+2025-06-24 11:50:12 - environment - INFO - Trade tracer initialized: training_session_ep001_batch000_traces
+2025-06-24 11:50:12 - environment - INFO - DataFrame shape: (35020, 47)
+2025-06-24 11:50:12 - environment - INFO - DataFrame columns: ['Unnamed: 0', 'Open', 'High', 'Low', 'Close', 'Volume', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9', 'RSI', 'SMA_20', 'SMA_50', 'EMA_12', 'EMA_26', 'BBL_20_2.0', 'BBM_20_2.0', 'BBU_20_2.0', 'BBB_20_2.0', 'BBP_20_2.0', 'ATR', 'STOCHk_14_3_3', 'STOCHd_14_3_3', 'WillR', 'CCI', 'Volume_SMA', 'Volume_Ratio', 'Price_Change', 'Price_Change_SMA', 'Volatility', 'High_20', 'Low_20', 'Gap_Up', 'Gap_Down', 'Doji', 'Hammer', 'hour', 'day_of_week', 'day_of_month', 'month', 'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'is_asian_session', 'is_european_session', 'is_american_session', 'is_weekend']
+2025-06-24 11:50:12 - environment - INFO - Feature columns: ['Unnamed: 0', 'Open', 'High', 'Low', 'Close', 'Volume', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9', 'RSI', 'SMA_20', 'SMA_50', 'EMA_12', 'EMA_26', 'BBL_20_2.0', 'BBM_20_2.0', 'BBU_20_2.0', 'BBB_20_2.0', 'BBP_20_2.0', 'ATR', 'STOCHk_14_3_3', 'STOCHd_14_3_3', 'WillR', 'CCI', 'Volume_SMA', 'Volume_Ratio', 'Price_Change', 'Price_Change_SMA', 'Volatility', 'High_20', 'Low_20', 'Gap_Up', 'Gap_Down', 'Doji', 'Hammer', 'hour', 'day_of_week', 'day_of_month', 'month', 'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'is_asian_session', 'is_european_session', 'is_american_session', 'is_weekend']
+2025-06-24 11:50:12 - environment - INFO - Number of feature columns: 47
+2025-06-24 11:50:12 - environment - INFO - Lookback window: 20
+2025-06-24 11:50:12 - environment - INFO - Max steps: 35000
+2025-06-24 11:50:12 - environment - INFO - Market features size: 940 (47 x 20)
+2025-06-24 11:50:12 - environment - INFO - Account features size: 7
+2025-06-24 11:50:12 - environment - INFO - Individual trades features size: 40 (10 trades x 4 features)
+2025-06-24 11:50:12 - environment - INFO - Total observation size: 987
+2025-06-24 11:50:12 - environment - INFO - Using discrete action space with individual trade management:
+2025-06-24 11:50:12 - environment - INFO -   - Actions 0-2: HOLD, BUY, SELL
+2025-06-24 11:50:12 - environment - INFO -   - Actions 3-12: CLOSE_TRADE_1 to CLOSE_TRADE_10
+2025-06-24 11:50:12 - environment - INFO -   - 8 position sizes: [0.0, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06]
+2025-06-24 11:50:12 - environment - INFO - Environment initialized with observation space: (987,)
+2025-06-24 11:50:12 - __main__ - INFO - Training environment created successfully.
+2025-06-24 11:50:12 - __main__ - INFO - Creating test environment for the first time...
+2025-06-24 11:50:12 - utils.trade_logger - INFO - Initialized TradeLogger: logs\trades\testing_trades.csv
+2025-06-24 11:50:12 - utils.trade_logger - INFO - Session initialized with starting balance: $10000.00
+2025-06-24 11:50:12 - environment - INFO - Trade logger initialized with session: testing_session_ep001_batch000
+2025-06-24 11:50:12 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log
+2025-06-24 11:50:12 - environment - INFO - Trade tracer initialized: testing_session_ep001_batch000_traces
+2025-06-24 11:50:12 - environment - INFO - DataFrame shape: (8768, 47)
+2025-06-24 11:50:12 - environment - INFO - DataFrame columns: ['Unnamed: 0', 'Open', 'High', 'Low', 'Close', 'Volume', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9', 'RSI', 'SMA_20', 'SMA_50', 'EMA_12', 'EMA_26', 'BBL_20_2.0', 'BBM_20_2.0', 'BBU_20_2.0', 'BBB_20_2.0', 'BBP_20_2.0', 'ATR', 'STOCHk_14_3_3', 'STOCHd_14_3_3', 'WillR', 'CCI', 'Volume_SMA', 'Volume_Ratio', 'Price_Change', 'Price_Change_SMA', 'Volatility', 'High_20', 'Low_20', 'Gap_Up', 'Gap_Down', 'Doji', 'Hammer', 'hour', 'day_of_week', 'day_of_month', 'month', 'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'is_asian_session', 'is_european_session', 'is_american_session', 'is_weekend']
+2025-06-24 11:50:12 - environment - INFO - Feature columns: ['Unnamed: 0', 'Open', 'High', 'Low', 'Close', 'Volume', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9', 'RSI', 'SMA_20', 'SMA_50', 'EMA_12', 'EMA_26', 'BBL_20_2.0', 'BBM_20_2.0', 'BBU_20_2.0', 'BBB_20_2.0', 'BBP_20_2.0', 'ATR', 'STOCHk_14_3_3', 'STOCHd_14_3_3', 'WillR', 'CCI', 'Volume_SMA', 'Volume_Ratio', 'Price_Change', 'Price_Change_SMA', 'Volatility', 'High_20', 'Low_20', 'Gap_Up', 'Gap_Down', 'Doji', 'Hammer', 'hour', 'day_of_week', 'day_of_month', 'month', 'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'is_asian_session', 'is_european_session', 'is_american_session', 'is_weekend']
+2025-06-24 11:50:12 - environment - INFO - Number of feature columns: 47
+2025-06-24 11:50:12 - environment - INFO - Lookback window: 20
+2025-06-24 11:50:12 - environment - INFO - Max steps: 8748
+2025-06-24 11:50:12 - environment - INFO - Market features size: 940 (47 x 20)
+2025-06-24 11:50:12 - environment - INFO - Account features size: 7
+2025-06-24 11:50:12 - environment - INFO - Individual trades features size: 40 (10 trades x 4 features)
+2025-06-24 11:50:12 - environment - INFO - Total observation size: 987
+2025-06-24 11:50:12 - environment - INFO - Using discrete action space with individual trade management:
+2025-06-24 11:50:12 - environment - INFO -   - Actions 0-2: HOLD, BUY, SELL
+2025-06-24 11:50:12 - environment - INFO -   - Actions 3-12: CLOSE_TRADE_1 to CLOSE_TRADE_10
+2025-06-24 11:50:12 - environment - INFO -   - 8 position sizes: [0.0, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06]
+2025-06-24 11:50:12 - environment - INFO - Environment initialized with observation space: (987,)
+2025-06-24 11:50:12 - __main__ - INFO - Test environment created successfully.
+2025-06-24 11:50:12 - __main__ - INFO - Creating new TradingModel...
+2025-06-24 11:50:12 - model - INFO - Initializing TradingModel: memory_efficient_model_20250624_115012
+2025-06-24 11:50:12 - model - INFO - TensorBoard logging: Enabled
+2025-06-24 11:50:13 - model - INFO - Created PPO model on device: cuda
+2025-06-24 11:50:13 - model - INFO - Model parameters initialized with small values
+2025-06-24 11:50:13 - model - INFO - Successfully initialized TradingModel: memory_efficient_model_20250624_115012
+2025-06-24 11:50:13 - __main__ - INFO - TradingModel created successfully
+2025-06-24 11:50:13 - __main__ - INFO - Training model on current batch for 10000 steps...
+2025-06-24 11:50:13 - model - INFO - Starting training for 10000 timesteps
+2025-06-24 11:50:21 - environment - INFO - Opened LONG trade: 0.001000 BTC at $51842.28 (ID: TRADE_00000)
+2025-06-24 11:50:21 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00000
+2025-06-24 11:50:21 - utils.trade_tracer - INFO - Trade opened: TRADE_00000 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51842.28
+2025-06-24 11:50:21 - environment - INFO - BUY executed: 0.001000 BTC at $51842.28
+2025-06-24 11:50:29 - environment - INFO - Opened LONG trade: 0.001000 BTC at $51577.62 (ID: TRADE_00001)
+2025-06-24 11:50:29 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00001
+2025-06-24 11:50:29 - utils.trade_tracer - INFO - Trade opened: TRADE_00001 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51577.62
+2025-06-24 11:50:29 - environment - INFO - BUY executed: 0.001000 BTC at $51577.62
+2025-06-24 11:50:30 - environment - INFO - Opened LONG trade: 0.001000 BTC at $51889.32 (ID: TRADE_00002)
+2025-06-24 11:50:30 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00002
+2025-06-24 11:50:30 - utils.trade_tracer - INFO - Trade opened: TRADE_00002 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51889.32
+2025-06-24 11:50:30 - environment - INFO - BUY executed: 0.001000 BTC at $51889.32
+2025-06-24 11:50:33 - environment - INFO - Opened LONG trade: 0.001000 BTC at $51684.37 (ID: TRADE_00003)
+2025-06-24 11:50:33 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00003
+2025-06-24 11:50:33 - utils.trade_tracer - INFO - Trade opened: TRADE_00003 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 51684.37
+2025-06-24 11:50:33 - environment - INFO - BUY executed: 0.001000 BTC at $51684.37
+2025-06-24 11:50:33 - environment - INFO - Opened LONG trade: 0.001000 BTC at $52021.41 (ID: TRADE_00004)
+2025-06-24 11:50:33 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00004
+2025-06-24 11:50:33 - utils.trade_tracer - INFO - Trade opened: TRADE_00004 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 52021.41
+2025-06-24 11:50:33 - environment - INFO - BUY executed: 0.001000 BTC at $52021.41
+2025-06-24 11:50:37 - environment - INFO - Opened LONG trade: 0.001000 BTC at $54076.72 (ID: TRADE_00005)
+2025-06-24 11:50:37 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00005
+2025-06-24 11:50:37 - utils.trade_tracer - INFO - Trade opened: TRADE_00005 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 54076.72
+2025-06-24 11:50:37 - environment - INFO - BUY executed: 0.001000 BTC at $54076.72
+2025-06-24 11:50:37 - environment - INFO - Opened LONG trade: 0.001000 BTC at $54197.31 (ID: TRADE_00006)
+2025-06-24 11:50:37 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00006
+2025-06-24 11:50:37 - utils.trade_tracer - INFO - Trade opened: TRADE_00006 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 54197.31
+2025-06-24 11:50:37 - environment - INFO - BUY executed: 0.001000 BTC at $54197.31
+2025-06-24 11:50:41 - environment - INFO - Opened LONG trade: 0.001000 BTC at $55694.85 (ID: TRADE_00007)
+2025-06-24 11:50:41 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00007
+2025-06-24 11:50:41 - utils.trade_tracer - INFO - Trade opened: TRADE_00007 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55694.85
+2025-06-24 11:50:41 - environment - INFO - BUY executed: 0.001000 BTC at $55694.85
+2025-06-24 11:50:42 - environment - INFO - Opened LONG trade: 0.001000 BTC at $55763.86 (ID: TRADE_00008)
+2025-06-24 11:50:42 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00008
+2025-06-24 11:50:42 - utils.trade_tracer - INFO - Trade opened: TRADE_00008 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55763.86
+2025-06-24 11:50:42 - environment - INFO - BUY executed: 0.001000 BTC at $55763.86
+2025-06-24 11:50:43 - environment - INFO - Opened LONG trade: 0.001000 BTC at $55601.50 (ID: TRADE_00009)
+2025-06-24 11:50:43 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00009
+2025-06-24 11:50:43 - utils.trade_tracer - INFO - Trade opened: TRADE_00009 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55601.50
+2025-06-24 11:50:43 - environment - INFO - BUY executed: 0.001000 BTC at $55601.50
+2025-06-24 11:50:43 - environment - INFO - Opened LONG trade: 0.001000 BTC at $55413.94 (ID: TRADE_00010)
+2025-06-24 11:50:43 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00010
+2025-06-24 11:50:43 - utils.trade_tracer - INFO - Trade opened: TRADE_00010 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55413.94
+2025-06-24 11:50:43 - environment - INFO - BUY executed: 0.001000 BTC at $55413.94
+2025-06-24 11:50:43 - environment - INFO - Opened LONG trade: 0.001000 BTC at $55450.95 (ID: TRADE_00011)
+2025-06-24 11:50:43 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00011
+2025-06-24 11:50:43 - utils.trade_tracer - INFO - Trade opened: TRADE_00011 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55450.95
+2025-06-24 11:50:43 - environment - INFO - BUY executed: 0.001000 BTC at $55450.95
+2025-06-24 11:50:45 - environment - INFO - Opened LONG trade: 0.001000 BTC at $55646.30 (ID: TRADE_00012)
+2025-06-24 11:50:45 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00012
+2025-06-24 11:50:45 - utils.trade_tracer - INFO - Trade opened: TRADE_00012 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 55646.30
+2025-06-24 11:50:45 - environment - INFO - BUY executed: 0.001000 BTC at $55646.30
+2025-06-24 11:50:55 - environment - INFO - Opened LONG trade: 0.001000 BTC at $60410.02 (ID: TRADE_00013)
+2025-06-24 11:50:55 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00013
+2025-06-24 11:50:55 - utils.trade_tracer - INFO - Trade opened: TRADE_00013 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60410.02
+2025-06-24 11:50:55 - environment - INFO - BUY executed: 0.001000 BTC at $60410.02
+2025-06-24 11:50:58 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62602.27 (ID: TRADE_00014)
+2025-06-24 11:50:58 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00014
+2025-06-24 11:50:58 - utils.trade_tracer - INFO - Trade opened: TRADE_00014 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62602.27
+2025-06-24 11:50:58 - environment - INFO - BUY executed: 0.001000 BTC at $62602.27
+2025-06-24 11:50:58 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62219.96 (ID: TRADE_00015)
+2025-06-24 11:50:58 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00015
+2025-06-24 11:50:58 - utils.trade_tracer - INFO - Trade opened: TRADE_00015 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62219.96
+2025-06-24 11:50:58 - environment - INFO - BUY executed: 0.001000 BTC at $62219.96
+2025-06-24 11:51:07 - environment - INFO - Opened SHORT trade: 0.001000 BTC at $61983.84 (ID: TRADE_00016)
+2025-06-24 11:51:07 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00016
+2025-06-24 11:51:07 - utils.trade_tracer - INFO - Trade opened: TRADE_00016 - SHORT 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61983.84
+2025-06-24 11:51:07 - environment - INFO - SELL executed: 0.001000 BTC at $61983.84
+2025-06-24 11:51:07 - environment - INFO - Opened LONG trade: 0.001000 BTC at $61680.65 (ID: TRADE_00017)
+2025-06-24 11:51:07 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00017
+2025-06-24 11:51:07 - utils.trade_tracer - INFO - Trade opened: TRADE_00017 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61680.65
+2025-06-24 11:51:07 - environment - INFO - BUY executed: 0.001000 BTC at $61680.65
+2025-06-24 11:51:07 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62288.06 (ID: TRADE_00018)
+2025-06-24 11:51:07 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00018
+2025-06-24 11:51:07 - utils.trade_tracer - INFO - Trade opened: TRADE_00018 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62288.06
+2025-06-24 11:51:07 - environment - INFO - BUY executed: 0.001000 BTC at $62288.06
+2025-06-24 11:51:10 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62279.93 (ID: TRADE_00019)
+2025-06-24 11:51:10 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00019
+2025-06-24 11:51:10 - utils.trade_tracer - INFO - Trade opened: TRADE_00019 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62279.93
+2025-06-24 11:51:10 - environment - INFO - BUY executed: 0.001000 BTC at $62279.93
+2025-06-24 11:51:12 - environment - INFO - Opened LONG trade: 0.001000 BTC at $60941.37 (ID: TRADE_00020)
+2025-06-24 11:51:12 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00020
+2025-06-24 11:51:12 - utils.trade_tracer - INFO - Trade opened: TRADE_00020 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60941.37
+2025-06-24 11:51:12 - environment - INFO - BUY executed: 0.001000 BTC at $60941.37
+2025-06-24 11:51:12 - environment - INFO - Opened LONG trade: 0.001000 BTC at $61725.23 (ID: TRADE_00021)
+2025-06-24 11:51:12 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00021
+2025-06-24 11:51:12 - utils.trade_tracer - INFO - Trade opened: TRADE_00021 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61725.23
+2025-06-24 11:51:12 - environment - INFO - BUY executed: 0.001000 BTC at $61725.23
+2025-06-24 11:51:13 - environment - INFO - Opened LONG trade: 0.001000 BTC at $64002.18 (ID: TRADE_00022)
+2025-06-24 11:51:13 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00022
+2025-06-24 11:51:13 - utils.trade_tracer - INFO - Trade opened: TRADE_00022 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 64002.18
+2025-06-24 11:51:13 - environment - INFO - BUY executed: 0.001000 BTC at $64002.18
+2025-06-24 11:51:14 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63729.22 (ID: TRADE_00023)
+2025-06-24 11:51:14 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00023
+2025-06-24 11:51:14 - utils.trade_tracer - INFO - Trade opened: TRADE_00023 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63729.22
+2025-06-24 11:51:14 - environment - INFO - BUY executed: 0.001000 BTC at $63729.22
+2025-06-24 11:51:14 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63715.73 (ID: TRADE_00024)
+2025-06-24 11:51:14 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00024
+2025-06-24 11:51:14 - utils.trade_tracer - INFO - Trade opened: TRADE_00024 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63715.73
+2025-06-24 11:51:14 - environment - INFO - BUY executed: 0.001000 BTC at $63715.73
+2025-06-24 11:51:15 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62962.57 (ID: TRADE_00025)
+2025-06-24 11:51:15 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00025
+2025-06-24 11:51:15 - utils.trade_tracer - INFO - Trade opened: TRADE_00025 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62962.57
+2025-06-24 11:51:15 - environment - INFO - BUY executed: 0.001000 BTC at $62962.57
+2025-06-24 11:51:15 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63803.67 (ID: TRADE_00026)
+2025-06-24 11:51:15 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00026
+2025-06-24 11:51:15 - utils.trade_tracer - INFO - Trade opened: TRADE_00026 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63803.67
+2025-06-24 11:51:15 - environment - INFO - BUY executed: 0.001000 BTC at $63803.67
+2025-06-24 11:51:15 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63860.14 (ID: TRADE_00027)
+2025-06-24 11:51:15 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00027
+2025-06-24 11:51:15 - utils.trade_tracer - INFO - Trade opened: TRADE_00027 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63860.14
+2025-06-24 11:51:15 - environment - INFO - BUY executed: 0.001000 BTC at $63860.14
+2025-06-24 11:51:19 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63253.21 (ID: TRADE_00028)
+2025-06-24 11:51:19 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00028
+2025-06-24 11:51:19 - utils.trade_tracer - INFO - Trade opened: TRADE_00028 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63253.21
+2025-06-24 11:51:19 - environment - INFO - BUY executed: 0.001000 BTC at $63253.21
+2025-06-24 11:51:19 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62078.14 (ID: TRADE_00029)
+2025-06-24 11:51:19 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00029
+2025-06-24 11:51:19 - utils.trade_tracer - INFO - Trade opened: TRADE_00029 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62078.14
+2025-06-24 11:51:19 - environment - INFO - BUY executed: 0.001000 BTC at $62078.14
+2025-06-24 11:51:22 - environment - INFO - Opened LONG trade: 0.001000 BTC at $61981.24 (ID: TRADE_00030)
+2025-06-24 11:51:22 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00030
+2025-06-24 11:51:22 - utils.trade_tracer - INFO - Trade opened: TRADE_00030 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61981.24
+2025-06-24 11:51:22 - environment - INFO - BUY executed: 0.001000 BTC at $61981.24
+2025-06-24 11:51:22 - environment - INFO - Opened LONG trade: 0.001000 BTC at $62449.77 (ID: TRADE_00031)
+2025-06-24 11:51:22 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00031
+2025-06-24 11:51:22 - utils.trade_tracer - INFO - Trade opened: TRADE_00031 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 62449.77
+2025-06-24 11:51:22 - environment - INFO - BUY executed: 0.001000 BTC at $62449.77
+2025-06-24 11:51:24 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63280.19 (ID: TRADE_00032)
+2025-06-24 11:51:24 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00032
+2025-06-24 11:51:24 - utils.trade_tracer - INFO - Trade opened: TRADE_00032 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63280.19
+2025-06-24 11:51:24 - environment - INFO - BUY executed: 0.001000 BTC at $63280.19
+2025-06-24 11:51:24 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63346.65 (ID: TRADE_00033)
+2025-06-24 11:51:24 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00033
+2025-06-24 11:51:24 - utils.trade_tracer - INFO - Trade opened: TRADE_00033 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63346.65
+2025-06-24 11:51:24 - environment - INFO - BUY executed: 0.001000 BTC at $63346.65
+2025-06-24 11:51:30 - environment - INFO - Opened LONG trade: 0.001000 BTC at $63935.03 (ID: TRADE_00034)
+2025-06-24 11:51:30 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00034
+2025-06-24 11:51:30 - utils.trade_tracer - INFO - Trade opened: TRADE_00034 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 63935.03
+2025-06-24 11:51:30 - environment - INFO - BUY executed: 0.001000 BTC at $63935.03
+2025-06-24 11:51:31 - environment - INFO - Opened LONG trade: 0.001000 BTC at $60155.40 (ID: TRADE_00035)
+2025-06-24 11:51:31 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00035
+2025-06-24 11:51:31 - utils.trade_tracer - INFO - Trade opened: TRADE_00035 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 60155.40
+2025-06-24 11:51:31 - environment - INFO - BUY executed: 0.001000 BTC at $60155.40
+2025-06-24 11:51:31 - environment - INFO - Opened LONG trade: 0.001000 BTC at $61107.54 (ID: TRADE_00036)
+2025-06-24 11:51:31 - utils.trade_tracer - DEBUG - Trace event 'TRADE_OPENED' written for trade TRADE_00036
+2025-06-24 11:51:31 - utils.trade_tracer - INFO - Trade opened: TRADE_00036 - LONG 0.001000 BINANCEFTS_PERP_BTC_USDT @ 61107.54
+2025-06-24 11:51:31 - environment - INFO - BUY executed: 0.001000 BTC at $61107.54
+2025-06-24 11:51:35 - model - INFO - Training completed. Model saved to models\memory_efficient_model_20250624_115012_final
+2025-06-24 11:51:35 - __main__ - INFO - Model trained on 10000 steps. Total steps trained: 10000
+2025-06-24 11:51:35 - __main__ - INFO - Evaluating model on the test set...
+2025-06-24 11:51:35 - model - INFO - Evaluating model for 1 episodes
+2025-06-24 11:52:09 - model - INFO - Evaluation completed. Mean reward: -0.01
+2025-06-24 11:52:09 - __main__ - INFO - Evaluation completed. Mean reward: -0.0050
+2025-06-24 11:52:09 - __main__ - INFO - Episode 1 completed. Total steps trained: 10000
+2025-06-24 11:52:09 - __main__ - INFO - Training pipeline finished.
+2025-06-24 11:52:09 - model - INFO - Model saved to models/memory_efficient_model_final
+2025-06-24 11:52:09 - __main__ - INFO - Final model saved to models/memory_efficient_model_final
+2025-06-24 11:52:09 - __main__ - INFO - Starting cleanup process...
+2025-06-24 11:52:09 - __main__ - INFO - Closing train environment trade logger...
+2025-06-24 11:52:09 - __main__ - INFO - Closing train environment trade tracer...
+2025-06-24 11:52:09 - __main__ - INFO - Closing test environment trade logger...
+2025-06-24 11:52:09 - __main__ - INFO - Closing test environment trade tracer...
+2025-06-24 11:52:09 - __main__ - INFO - Closing logging handlers...

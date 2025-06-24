@@ -1,0 +1,7 @@
+2025-06-22 22:10:00 - __main__ - INFO - Initialized MemoryEfficientTrainingManager
+2025-06-22 22:10:00 - data.setup_data - INFO - Initialized DataProcessor with lookback_window=20
+2025-06-22 22:10:00 - __main__ - INFO - Memory usage Initialization: 460.9 MB (2.9%)
+2025-06-22 22:10:00 - __main__ - INFO - MemoryEfficientTrainingManager initialized.
+2025-06-22 22:10:00 - __main__ - INFO - Starting memory-efficient training pipeline
+2025-06-22 22:10:00 - __main__ - INFO - Starting cleanup process...
+2025-06-22 22:10:00 - __main__ - INFO - Closing logging handlers...
