@@ -262,7 +262,9 @@ class TradingModel:
         tensorboard_log: str = "logs/tensorboard/",
         verbose: int = 1,
         logging_config: Optional[Dict] = None,
-        device: str = "auto"    ):
+        device: str = "auto",
+        config_overrides: Optional[Dict] = None
+    ):
         """
         Initialize trading model
         
@@ -273,11 +275,13 @@ class TradingModel:
             verbose: Verbosity level
             logging_config: Optional logging configuration dictionary
             device: Device to use for training ('auto', 'cpu', 'cuda')
+            config_overrides: Optional config overrides for enhanced exploration
         """
         self.env = env
         self.model_name = model_name
         self.verbose = verbose
         self.device = device
+        self.config_overrides = config_overrides or {}
         
         # Apply logging configuration
         self.logging_config = logging_config or {}
@@ -301,8 +305,7 @@ class TradingModel:
         
         # Model configuration
         self.model_config = self._get_optimized_config()
-        
-        # Initialize model
+          # Initialize model
         self.model = None
         self._create_model()
         
@@ -310,40 +313,41 @@ class TradingModel:
     
     def _get_optimized_config(self) -> Dict[str, Any]:
         """
-        Get optimized PPO hyperparameters for trading
-        Based on the requirements in the instructions
+        Get optimized PPO hyperparameters for trading with enhanced exploration
         """
         return {
-            # Conservative learning parameters
-            'learning_rate': 1e-4,      # Lower learning rate
-            'n_steps': 512,             # Smaller batch collection
-            'batch_size': 32,           # Smaller batch size
-            'n_epochs': 3,              # Fewer epochs per update
-            'gamma': 0.99,
-            'gae_lambda': 0.95,
-            'clip_range': 0.2,          # Adjusted clip range for stability
-            'ent_coef': 0.001,          # Small entropy coefficient
-            'vf_coef': 0.5,
-            'max_grad_norm': 0.3,       # Strong gradient clipping
+            # Enhanced learning parameters for better exploration
+            'learning_rate': 3e-4,      # Higher learning rate for exploration
+            'n_steps': 1024,            # Larger batch collection for diversity
+            'batch_size': 64,           # Larger batch size for stable gradients
+            'n_epochs': 4,              # Moderate epochs per update
+            'gamma': 0.995,             # Higher gamma for longer-term rewards
+            'gae_lambda': 0.98,         # Higher GAE lambda for better advantage estimation
+            'clip_range': 0.3,          # Higher clip range for exploration
+            'ent_coef': 0.05,           # MUCH higher entropy for exploration
+            'vf_coef': 0.8,             # Higher value function weight
+            'max_grad_norm': 1.0,       # Moderate gradient clipping
             
-            # Network architecture
+            # Enhanced network architecture for better learning
             'policy_kwargs': {
                 'net_arch': {
-                    'pi': [128, 64],        # Smaller networks
-                    'vf': [128, 64]
+                    'pi': [512, 256, 128],   # Larger actor network for complex policies
+                    'vf': [512, 256, 128]    # Larger critic network for value estimation
                 },
-                'activation_fn': torch.nn.Tanh,  # Tanh for bounded outputs
-                'optimizer_class': torch.optim.AdamW,  # More stable optimizer
+                'activation_fn': torch.nn.ReLU,  # ReLU for faster learning
+                'optimizer_class': torch.optim.Adam,  # Standard Adam optimizer
                 'optimizer_kwargs': {
-                    'eps': 1e-7,
-                    'weight_decay': 1e-4    # L2 regularization
-                }
+                    'eps': 1e-8,
+                    'weight_decay': 1e-5    # Light L2 regularization
+                },
+                'features_extractor_class': TradingFeatureExtractor,
+                'features_extractor_kwargs': {'features_dim': 256}
             },
             
-            # Training stability
+            # Training stability with exploration focus
             'normalize_advantage': True,
             'use_sde': False,
-            'target_kl': 0.03,          # Stop if KL divergence too high
+            'target_kl': 0.05,          # Higher KL tolerance for exploration
             'device': 'cuda' if torch.cuda.is_available() else 'cpu'
         }
     

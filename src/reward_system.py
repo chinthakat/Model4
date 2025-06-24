@@ -97,6 +97,23 @@ class EnhancedRewardCalculator:
         self.MAX_HOLDING_STEPS = self.config.get('max_holding_steps', 48)  # 12 hours for 15min bars
         self.EXCESSIVE_HOLDING_PENALTY = self.config.get('excessive_holding_penalty', -5.0)  # Stronger penalty for long holds
         
+        # Store action space configuration
+        self.use_discretized_actions = config.get('use_discretized_actions', False)
+        
+        # === ENHANCED: Action-specific bonuses for exploration ===
+        self.SHORT_TRADE_BONUS = self.config.get('short_trade_bonus', 0.0)
+        self.LONG_TRADE_BONUS = self.config.get('long_trade_bonus', 0.0)
+        self.POSITION_DIVERSITY_BONUS = self.config.get('position_diversity_bonus', 0.0)
+        self.EXPLORATION_BONUS = self.config.get('exploration_bonus', 0.0)
+        self.ACTION_DIVERSITY_REWARD = self.config.get('action_diversity_reward', 0.0)
+        self.RECENT_ACTIONS_WINDOW = self.config.get('recent_actions_window', 20)
+        
+        # === Position management enhancements ===
+        self.MULTIPLE_POSITIONS_PENALTY = self.config.get('multiple_positions_penalty', 0.0)
+        self.POSITION_LIMIT_THRESHOLD = self.config.get('position_limit_threshold', 5)
+        self.CLOSE_PROFITABLE_BONUS = self.config.get('close_profitable_bonus', 0.0)
+        self.CLOSE_LOSING_PENALTY = self.config.get('close_losing_penalty', 0.0)
+        
         # === TRACKING & STATE VARIABLES ===
         self.trade_history: List[Dict] = []
         self.current_streak = 0
@@ -244,11 +261,16 @@ class EnhancedRewardCalculator:
         reward_breakdown['frequency_bonus'] = small_transaction_rewards['frequency_bonus']
         reward_breakdown['gradual_building_bonus'] = small_transaction_rewards['gradual_building_bonus']
         reward_breakdown['volume_consistency_bonus'] = small_transaction_rewards['volume_consistency_bonus']
-        
-        # === 11. CRITICAL FIX: HOLDING TIME PENALTY ===
+          # === 11. CRITICAL FIX: HOLDING TIME PENALTY ===
         holding_time_penalty = self._calculate_holding_time_penalty(position_size)
         reward_breakdown['holding_time_penalty'] = holding_time_penalty
-          # === CALCULATE TOTAL REWARD ===
+        
+        # === 12. NEW: ENHANCED EXPLORATION BONUSES ===
+        exploration_bonuses = self._calculate_exploration_bonuses(action, position_size, balance)
+        reward_breakdown['action_specific_bonus'] = exploration_bonuses['action_specific_bonus']
+        reward_breakdown['diversity_bonus'] = exploration_bonuses['diversity_bonus']
+        reward_breakdown['exploration_bonus'] = exploration_bonuses['exploration_bonus']
+        reward_breakdown['close_quality_bonus'] = exploration_bonuses['close_quality_bonus']        # === CALCULATE TOTAL REWARD ===
         total_reward = (
             unrealized_points +
             realized_points +
@@ -260,12 +282,17 @@ class EnhancedRewardCalculator:
             consistency_points +
             commission_penalty +
             holding_time_penalty +
-            # NEW: Add small transaction incentives
+            # Add small transaction incentives
             small_transaction_rewards['small_position_bonus'] +
             small_transaction_rewards['position_size_penalty'] +
             small_transaction_rewards['frequency_bonus'] +
             small_transaction_rewards['gradual_building_bonus'] +
-            small_transaction_rewards['volume_consistency_bonus']
+            small_transaction_rewards['volume_consistency_bonus'] +
+            # NEW: Add exploration bonuses
+            exploration_bonuses['action_specific_bonus'] +
+            exploration_bonuses['diversity_bonus'] +
+            exploration_bonuses['exploration_bonus'] +
+            exploration_bonuses['close_quality_bonus']
         )
         
         reward_breakdown['total_points'] = total_reward
@@ -794,6 +821,80 @@ class EnhancedRewardCalculator:
         
         return penalty
 
+    def _calculate_exploration_bonuses(self, action: int, position_size: float, balance: float) -> Dict[str, float]:
+        """
+        Calculate exploration bonuses for balanced action diversity
+        
+        Args:
+            action: Current action taken (0=hold, 1=long, 2=short, 3+=close)
+            position_size: Current position size
+            balance: Current account balance
+            
+        Returns:
+            Dictionary with different exploration bonus components
+        """
+        bonuses = {
+            'action_specific_bonus': 0.0,
+            'diversity_bonus': 0.0, 
+            'exploration_bonus': 0.0,
+            'close_quality_bonus': 0.0
+        }
+        
+        # === 1. ACTION-SPECIFIC BONUSES ===
+        if action == 1:  # LONG/BUY action
+            bonuses['action_specific_bonus'] = self.LONG_TRADE_BONUS
+        elif action == 2:  # SHORT/SELL action  
+            bonuses['action_specific_bonus'] = self.SHORT_TRADE_BONUS
+        elif action >= 3:  # CLOSE actions (3-12)
+            bonuses['action_specific_bonus'] = self.CLOSE_ACTION_BONUS
+            
+            # === CLOSE QUALITY BONUS ===
+            # Check if this is a profitable or losing close
+            if hasattr(self, 'position_entry_price') and self.position_entry_price is not None:
+                # Estimate if close would be profitable (simplified)
+                # This would need actual price data, so we'll use a placeholder
+                bonuses['close_quality_bonus'] = self.CLOSE_PROFITABLE_BONUS * 0.5  # Average bonus
+        
+        # === 2. ACTION DIVERSITY TRACKING ===
+        # Track recent actions for diversity calculation
+        if not hasattr(self, 'recent_actions'):
+            self.recent_actions = []
+        
+        self.recent_actions.append(action)
+        
+        # Keep only recent actions within window
+        if len(self.recent_actions) > self.RECENT_ACTIONS_WINDOW:
+            self.recent_actions = self.recent_actions[-self.RECENT_ACTIONS_WINDOW:]
+        
+        # Calculate diversity bonus
+        if len(self.recent_actions) >= 5:  # Need minimum history
+            unique_actions = len(set(self.recent_actions))
+            if unique_actions >= 3:  # Used at least 3 different action types
+                diversity_ratio = unique_actions / len(set(self.recent_actions[-10:]))  # Last 10 actions
+                bonuses['diversity_bonus'] = self.ACTION_DIVERSITY_REWARD * diversity_ratio
+        
+        # === 3. POSITION DIVERSITY BONUS ===
+        # Track if agent uses both LONG and SHORT strategies
+        if not hasattr(self, 'used_long_trades'):
+            self.used_long_trades = False
+            self.used_short_trades = False
+        
+        if action == 1:  # LONG
+            self.used_long_trades = True
+        elif action == 2:  # SHORT
+            self.used_short_trades = True
+            
+        # Bonus for using both strategies
+        if self.used_long_trades and self.used_short_trades:
+            bonuses['diversity_bonus'] += self.POSITION_DIVERSITY_BONUS * 0.1  # Small ongoing bonus
+        
+        # === 4. GENERAL EXPLORATION BONUS ===
+        # Small bonus for any non-hold action
+        if action != 0:  # Not holding
+            bonuses['exploration_bonus'] = self.EXPLORATION_BONUS * 0.5
+            
+        return bonuses
+    
 # === CONFIGURATION CONSTANTS ===
 
 # CORRECTED Configuration Presets

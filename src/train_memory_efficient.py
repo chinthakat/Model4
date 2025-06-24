@@ -59,8 +59,8 @@ class StreamingDataReader:
         
         # Read file info without loading all data
         self._analyze_file()
-        
-        # Setup logging        self.logger = logging.getLogger(__name__)
+          # Setup logging
+        self.logger = logging.getLogger(__name__)
         self.logger.info(f"StreamingDataReader initialized for file: {self.file_path}")
         self.logger.info(f"File contains {self.total_rows} rows, {len(self.columns)} columns")
     
@@ -271,8 +271,7 @@ class Trainer:
         self.total_episodes = self.config.get('total_episodes', 10)
         self.steps_per_episode = 0
         self.total_steps_trained = 0
-        
-        # Generic session names for consistent logging
+          # Generic session names for consistent logging
         self.train_session_name = "training_session"
         self.test_session_name = "testing_session"
         
@@ -302,20 +301,28 @@ class Trainer:
             memory_mb = memory_info.rss / 1024 / 1024
             memory_percent = process.memory_percent()
             
-            self.logger.info(f"Memory usage {context}: {memory_mb:.1f} MB ({memory_percent:.1f}%)")
-            
+            self.logger.info(f"Memory usage {context}: {memory_mb:.1f} MB ({memory_percent:.1f}%)")            
             if memory_mb > 4000:
                 self.logger.warning(f"High memory usage detected: {memory_mb:.1f} MB")
         except Exception as e:
             self.logger.debug(f"Could not get memory info: {e}")
     
     def _get_reward_config(self) -> Dict[str, Any]:
-        """Get reward configuration based on strategy"""
-        reward_strategy = self.config.get('reward_strategy', 'balanced').lower()
+        """Get reward configuration based on strategy with enhanced exploration as default"""
+        reward_strategy = self.config.get('reward_strategy', 'enhanced_exploration').lower()  # Default to enhanced exploration
         encourage_small_trades = self.config.get('encourage_small_trades', False)
         ultra_aggressive_small = self.config.get('ultra_aggressive_small_trades', False)
 
-        if ultra_aggressive_small:
+        # Enhanced exploration strategy (now default)
+        if reward_strategy == 'enhanced_exploration' or reward_strategy == 'balanced':
+            try:
+                from enhanced_reward_configs import ENHANCED_EXPLORATION_CONFIG
+                base_config = ENHANCED_EXPLORATION_CONFIG.copy()
+                self.logger.info("🎯 Using ENHANCED_EXPLORATION_CONFIG for improved SHORT/LONG/CLOSE action balance.")
+            except ImportError:
+                self.logger.warning("ENHANCED_EXPLORATION_CONFIG not found, falling back to BALANCED_ENHANCED_CONFIG")
+                base_config = BALANCED_ENHANCED_CONFIG.copy()
+        elif ultra_aggressive_small:
             base_config = ULTRA_SMALL_TRANSACTION_CONFIG.copy()
             self.logger.info("Using ULTRA_SMALL_TRANSACTION_CONFIG for reward system.")
         elif encourage_small_trades:
@@ -328,10 +335,17 @@ class Trainer:
             base_config = AGGRESSIVE_ENHANCED_CONFIG.copy()
             self.logger.info("Using AGGRESSIVE_ENHANCED_CONFIG for reward system.")
         else:
-            base_config = BALANCED_ENHANCED_CONFIG.copy()
-            self.logger.info("Using BALANCED_ENHANCED_CONFIG for reward system.")
+            # Fallback - also use enhanced exploration
+            try:
+                from enhanced_reward_configs import ENHANCED_EXPLORATION_CONFIG
+                base_config = ENHANCED_EXPLORATION_CONFIG.copy()
+                self.logger.info("🎯 Using ENHANCED_EXPLORATION_CONFIG as fallback for improved action diversity.")
+            except ImportError:
+                base_config = BALANCED_ENHANCED_CONFIG.copy()
+                self.logger.info("Using BALANCED_ENHANCED_CONFIG as final fallback.")
         
-        base_config['log_rewards'] = self.config.get('log_reward_details', False)
+        # Apply reward detail logging and overrides
+        base_config['log_rewards'] = self.config.get('log_reward_details', True)  # Enable by default for analysis
         reward_overrides = self.config.get('reward_overrides', {})
         base_config.update(reward_overrides)
         
@@ -677,11 +691,12 @@ class Trainer:
                 self.logger.warning(f"Error cleaning up test environment: {e}")
         
         self.logger.info("Cleanup process finished.")
+    
     def _ensure_single_model_creation(self):
-        """Ensure we create only one model for the entire training session"""
+        """Ensure we create only one model for the entire training session with enhanced exploration"""
         if self.model is None:
-            self.logger.info("Creating single TradingModel for entire training session...")
-            model_name = f"memory_efficient_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            self.logger.info("Creating single TradingModel with enhanced exploration for entire training session...")
+            model_name = f"enhanced_exploration_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
             self.model = TradingModel(
                 env=self.train_env,
@@ -690,9 +705,9 @@ class Trainer:
                 device=self.config.get('device', 'auto')
             )
             
-            self.logger.info("✅ Single TradingModel created - will be reused throughout entire training session")
+            self.logger.info("✅ Enhanced Exploration TradingModel created - optimized for SHORT/LONG/CLOSE balance")
         else:
-            self.logger.info("✅ Reusing existing TradingModel (already created for this session)")
+            self.logger.info("✅ Reusing existing Enhanced TradingModel (already created for this session)")
 
     def _update_environment_sessions(self):
         """Update environment session names for current episode without recreating environments"""

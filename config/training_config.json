@@ -3,11 +3,10 @@
     "lookback_window": 50,
     "train_ratio": 0.8,
     "total_episodes": 1,
-    "steps_per_batch": 500000,
-    "reward_strategy": "balanced",
-    "encourage_small_trades": true,
-    "ultra_aggressive_small_trades": true,
-    "log_reward_details": false,
+    "steps_per_batch": 500000,    "reward_strategy": "enhanced_exploration",
+    "encourage_small_trades": false,
+    "ultra_aggressive_small_trades": false,
+    "log_reward_details": true,
     "final_model_path": "models/memory_efficient_model_final",
     "device": "auto",
     "logging_config": {
@@ -27,12 +26,27 @@
     "btc_minimum_size": 0.001,
     "environment_config": {
         "enable_trade_logging": true,
-        "trade_logger_session": null,
-        "episode_num": 0,
+        "trade_logger_session": null,        "episode_num": 0,
         "batch_num": 0
     },
+    "reward_overrides": {
+        "comment": "Enhanced exploration bonuses for balanced SHORT/LONG/CLOSE actions",
+        "close_action_bonus": 45.0,
+        "short_trade_bonus": 20.0,
+        "long_trade_bonus": 15.0,
+        "action_diversity_reward": 8.0,
+        "exploration_bonus": 12.0,
+        "position_diversity_bonus": 25.0
+    },
+    "ppo": {
+        "learning_rate": 0.001,
+        "ent_coef": 0.15,
+        "policy_kwargs": {
+            "net_arch": {"pi": [256, 256, 128], "vf": [256, 256, 128]}
+        }
+    },
     "reward_config": {
-        "type": "ultra_small_transaction",
+        "type": "enhanced_exploration",
         "risk_free_rate": 0.02,
         "lookback_window": 50,
         "volatility_window": 20,

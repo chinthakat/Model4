@@ -1,20 +1,30 @@
 {
-    "consolidated_file": "data/processed/BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv",    "initial_balance": 10000,
+    "consolidated_file": "data/processed/BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv",
+    "initial_balance": 10000,
     "lookback_window": 50,
     "train_ratio": 0.8,
-    "total_episodes": 1,
-    "steps_per_batch": 500000,
-    "reward_strategy": "balanced",
-    "encourage_small_trades": true,
-    "ultra_aggressive_small_trades": true,
-    "log_reward_details": false,
-    "final_model_path": "models/memory_efficient_model_final",
+    "total_episodes": 2,
+    "steps_per_episode": 300000,
+    "reward_strategy": "enhanced_exploration",
+    "encourage_small_trades": false,
+    "ultra_aggressive_small_trades": false,
+    "log_reward_details": true,
+    "final_model_path": "models/enhanced_exploration_model_final",
     "device": "auto",
     "logging_config": {
         "console_log_level": "INFO",
         "file_log_level": "DEBUG",
-        "trade_log_frequency": 10,
+        "trade_log_frequency": 5,
         "enable_trade_logging": true,
         "enable_trade_tracing": true
+    },
+    "reward_overrides": {
+        "comment": "Enhanced exploration bonuses for balanced SHORT/LONG/CLOSE actions",
+        "close_action_bonus": 45.0,
+        "short_trade_bonus": 20.0,
+        "long_trade_bonus": 15.0,
+        "action_diversity_reward": 8.0,
+        "exploration_bonus": 12.0,
+        "position_diversity_bonus": 25.0
     }
 }
