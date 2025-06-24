@@ -6,6 +6,7 @@ Optimized PPO implementation using Stable Baselines3
 
 import os
 import logging
+from datetime import datetime
 from typing import Dict, Optional, Any, Union
 import numpy as np
 import torch
@@ -18,6 +19,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
 from pathlib import Path
+from datetime import datetime
 
 class TradingFeatureExtractor(BaseFeaturesExtractor):
     """
@@ -566,6 +568,45 @@ class TradingModel:
             self.logger.error(f"Failed to save model: {e}")
             raise
     
+    def archive_and_save_model(self, path: Union[str, Path], create_archive: bool = True):
+        """
+        Save model with optional archiving of previous models
+        
+        Args:
+            path: Path to save the model
+            create_archive: Whether to archive existing models first
+        """
+        if self.model is None:
+            raise ValueError("No model to save")
+        
+        if not hasattr(self, 'logger'):
+            self.logger = logging.getLogger(__name__)
+        
+        try:
+            save_path = Path(path)
+            
+            # Archive existing model if it exists and archiving is enabled
+            if create_archive and save_path.exists():
+                from utils.archiver import TrainingArchiver
+                archiver = TrainingArchiver()
+                
+                # Create backup with timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_name = f"{save_path.stem}_backup_{timestamp}{save_path.suffix}"
+                backup_path = save_path.parent / backup_name
+                
+                # Move existing model to backup
+                save_path.rename(backup_path)
+                self.logger.info(f"Existing model backed up to: {backup_path}")
+            
+            # Save the new model
+            self.model.save(path)
+            self.logger.info(f"Model saved to {path}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save model with archiving: {e}")
+            raise
+
     def load_model(self, path: Union[str, Path], env: Optional[gym.Env] = None):
         """Load model from file"""
         if env is None:
@@ -588,6 +629,25 @@ class TradingModel:
         
         return self.model.predict(observation, deterministic=deterministic)
     
+    def set_environment(self, env: gym.Env):
+        """
+        Set or update the environment for the model
+        
+        Args:
+            env: New trading environment to use
+        """
+        try:
+            self.env = env
+            if self.model is not None:
+                # Update the environment in the existing model
+                self.model.set_env(env)
+                self.logger.info("Model environment updated successfully")
+            else:
+                self.logger.warning("Model not initialized yet, environment will be used when model is created")
+        except Exception as e:
+            self.logger.error(f"Failed to set environment: {e}")
+            raise
+
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information"""
         if self.model is None:

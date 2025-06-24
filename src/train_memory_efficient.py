@@ -9,8 +9,10 @@ import os
 import sys
 import argparse
 import logging
+import logging.config
 import traceback
 import time
+import json
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple, Iterator
@@ -26,6 +28,7 @@ sys.path.append(str(Path(__file__).parent))
 
 # Import configuration utilities
 from utils.config_loader import load_training_config, get_logging_config, setup_console_logging, setup_file_logging, print_logging_config
+from utils.archiver import TrainingArchiver, archive_before_training
 
 # Import core components
 from data.setup_data import DataProcessor
@@ -227,10 +230,11 @@ class StreamingDataReader:
             'batch_size': self.batch_size
         }
 
-class MemoryEfficientTrainingManager:
+class Trainer:
     """
     Memory-efficient training manager that streams data from consolidated files.
     """
+    
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logging_config = get_logging_config(config)
@@ -239,6 +243,19 @@ class MemoryEfficientTrainingManager:
         
         self.logger.info("Initialized MemoryEfficientTrainingManager")
         print_logging_config(self.logging_config)
+        
+        # Print the loaded configuration to the log file
+        self.logger.info("=== LOADED TRAINING CONFIGURATION ===")
+        for key, value in self.config.items():
+            # Format sensitive or complex values appropriately
+            if isinstance(value, dict):
+                self.logger.info(f"{key}:")
+                for sub_key, sub_value in value.items():
+                    self.logger.info(f"  {sub_key}: {sub_value}")
+            else:
+                self.logger.info(f"{key}: {value}")
+        self.logger.info("=== END CONFIGURATION ===")
+        self.logger.info("")
         
         # Initialize data processor (for feature engineering only)
         self.data_processor = DataProcessor(lookback_window=self.config.get('lookback_window', 20))
@@ -564,9 +581,6 @@ class MemoryEfficientTrainingManager:
         full_df = pd.read_csv(consolidated_file_path)
         self.logger.info(f"Loaded {len(full_df)} rows.")
 
-        all_episode_metrics = []
-        successful_episodes = 0
-
         # Loop through episodes
         for episode_num in range(1, self.total_episodes + 1):
             self.current_episode = episode_num
@@ -574,10 +588,6 @@ class MemoryEfficientTrainingManager:
 
             # Process the full dataset
             train_df, test_df = self._process_batch_data(full_df, is_first_batch=True)
-
-            if train_df is None or test_df is None:
-                self.logger.error(f"Skipping episode {episode_num} due to data processing error.")
-                continue
 
             # Create environments once per episode
             self._create_or_update_environments(train_df, test_df, is_first_batch=True)
@@ -593,11 +603,7 @@ class MemoryEfficientTrainingManager:
             self._train_on_batch()
 
             # Evaluate the model at the end of the episode
-            eval_metrics = self._evaluate_model()
-
-            if eval_metrics:
-                all_episode_metrics.append(eval_metrics)
-                successful_episodes += 1
+            self._evaluate_model()
 
             self.logger.info(f"Episode {self.current_episode} completed. Total steps trained: {self.total_steps_trained}")
 
@@ -607,484 +613,202 @@ class MemoryEfficientTrainingManager:
             self.model.save_model(final_model_path)
             self.logger.info(f"Final model saved to {final_model_path}")
 
-        # Aggregate final metrics
-        final_metrics = {
-            'total_episodes': self.total_episodes,
-            'successful_episodes': successful_episodes,
-            'all_episode_metrics': all_episode_metrics,
-            'trade_statistics': {}
-        }
+    def _process_batch_data(self, batch_data: pd.DataFrame, is_first_batch: bool) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Process a batch of raw data into features and split into train/test.
+        
+        Args:
+            batch_data: Raw OHLCV data batch
+            is_first_batch: Whether this is the first batch (for fitting scalers)
+            
+        Returns:
+            Tuple of (train_data, test_data)
+        """
+        try:
+            # Standardize column names before processing
+            if not all(col in batch_data.columns for col in ['Open', 'High', 'Low', 'Close', 'Volume']):
+                self.logger.debug("Standardizing column names for the batch.")
+                # Ensure streaming_reader is initialized
+                if not hasattr(self, 'streaming_reader') or self.streaming_reader is None:
+                    self.initialize_streaming_reader(self.config['consolidated_file'])
+                batch_data = self.streaming_reader._standardize_column_names(batch_data)
+            
+            # Process features using existing data processor
+            train_data, test_data = self.data_processor.prepare_data(
+                batch_data,
+                funding_rates=None,
+                train_ratio=self.config.get('train_ratio', 0.8),
+                fit_scalers=is_first_batch  # Fit scalers only on the first batch
+            )
+            
+            if train_data is None or test_data is None or train_data.empty or test_data.empty:
+                self.logger.warning("Data processing returned empty result")
+                return None, None
+            
+            self.logger.debug(f"Processed batch: {len(batch_data)} -> train: {len(train_data)}, test: {len(test_data)}")
+            
+            return train_data, test_data
+            
+        except Exception as e:
+            self.logger.error(f"Error processing data batch: {e}")
+            self.logger.debug(f"Batch info - Shape: {batch_data.shape}, Columns: {batch_data.columns.tolist()}")
+            return None, None
 
-        if all_episode_metrics:
-            rewards = [m.get('mean_reward', 0.0) for m in all_episode_metrics if m]
-            if rewards:
-                final_metrics['mean_episode_reward'] = np.mean(rewards)
-                final_metrics['best_episode_reward'] = np.max(rewards)
-            final_metrics['final_evaluation'] = all_episode_metrics[-1] if all_episode_metrics else {}
-
-        # Get trade statistics from the last evaluation
-        if self.test_env:
-            final_metrics['trade_statistics'] = self.test_env.get_episode_statistics()
-
-        return final_metrics
-
-    def _evaluate_model(self) -> Optional[Dict[str, Any]]:
+    def _create_or_update_environments(self, train_data: pd.DataFrame, test_data: pd.DataFrame, is_first_batch: bool = False):
+        """
+        Create or update the training and testing environments with the provided data.
+        
+        Args:
+            train_data: Processed training data
+            test_data: Processed testing data
+            is_first_batch: Flag indicating if this is the first batch (for initialization)
+        """
+        reward_config = self._get_reward_config()
+        
+        try:
+            # Create training environment session
+            train_session = f"{self.train_session_name}_ep{self.current_episode:03d}_batch{self.current_batch:03d}"
+            
+            if self.train_env is None:
+                self.logger.info("Creating training environment for the first time...")
+                self.train_env = TradingEnvironment(
+                    df=train_data,
+                    initial_balance=self.config.get('initial_balance', 10000),
+                    lookback_window=self.config.get('lookback_window', 20),
+                    reward_config=reward_config,
+                    trade_logger_session=train_session,
+                    enable_trade_logging=True,
+                    use_discretized_actions=True,  # Enable discrete actions for better learning
+                    episode_num=self.current_episode,
+                    batch_num=self.current_batch
+                )
+                self.logger.info("Training environment created successfully.")
+            else:
+                self.logger.debug(f"Updating training environment data for episode {self.current_episode}, batch {self.current_batch}")
+                # Use the new update_data method to maintain model continuity
+                self.train_env.update_data(train_data, self.current_episode, self.current_batch)
+                # Update trade logger session
+                if self.train_env.trade_logger:
+                    self.train_env.trade_logger.session_name = train_session
+                self.logger.debug("Training environment data updated.")
+            
+            # Create test environment session
+            test_session = f"{self.test_session_name}_ep{self.current_episode:03d}_batch{self.current_batch:03d}"
+            
+            if self.test_env is None:
+                self.logger.info("Creating test environment for the first time...")
+                self.test_env = TradingEnvironment(
+                    df=test_data,
+                    initial_balance=self.config.get('initial_balance', 10000),
+                    lookback_window=self.config.get('lookback_window', 20),
+                    reward_config=reward_config,
+                    trade_logger_session=test_session,
+                    enable_trade_logging=True,
+                    use_discretized_actions=True,  # Enable discrete actions for better learning
+                    episode_num=self.current_episode,
+                    batch_num=self.current_batch
+                )
+                self.logger.info("Test environment created successfully.")
+            else:
+                self.logger.debug(f"Updating test environment data for episode {self.current_episode}, batch {self.current_batch}")
+                # Use the new update_data method to maintain model continuity
+                self.test_env.update_data(test_data, self.current_episode, self.current_batch)
+                # Update trade logger session
+                if self.test_env.trade_logger:
+                    self.test_env.trade_logger.session_name = test_session
+                self.logger.debug("Test environment data updated.")
+            
+            self.logger.debug(f"Environments ready - Train: {len(train_data)} steps, Test: {len(test_data)} steps")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create/update environments: {e}")
+            raise
+    def _create_model(self):
+        """Create the trading model"""
+        if self.model is not None:
+            self.logger.warning("Model already exists, skipping creation")
+            return
+        
+        try:
+            self.logger.info("Creating new TradingModel...")
+            model_name = f"memory_efficient_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            self.model = TradingModel(
+                env=self.train_env,
+                model_name=model_name,
+                logging_config=self.logging_config,
+                device=self.config.get('device', 'auto')
+            )
+            
+            self.logger.info("TradingModel created successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to create model: {e}")
+            raise
+    
+    def _train_on_batch(self):
+        """Train the model on the current batch of data"""
+        if self.model is None:
+            self.logger.error("Model is not initialized, cannot train")
+            return
+        
+        try:
+            # Number of steps to train on this batch
+            train_steps = self.config.get('steps_per_batch', 1000)
+            
+            self.logger.info(f"Training model on current batch for {train_steps} steps...")
+            self.model.train(total_timesteps=train_steps)
+            
+            self.total_steps_trained += train_steps
+            self.logger.info(f"Model trained on {train_steps} steps. Total steps trained: {self.total_steps_trained}")
+        except Exception as e:
+            self.logger.error(f"Error during model training: {e}")
+            raise
+    
+    def _evaluate_model(self):
         """Evaluate the model on the test environment"""
         if self.model is None or self.test_env is None:
             self.logger.warning("Model or test environment not available for evaluation")
-            return None
+            return
         
         try:
             self.logger.info("Evaluating model on the test set...")
             eval_metrics = self.model.evaluate(
                 eval_env=self.test_env,
                 n_eval_episodes=1,
-                deterministic=True
-            )
-            
-            mean_reward = eval_metrics.get('mean_reward', 0.0)
-            self.logger.info(f"Evaluation completed. Mean reward: {mean_reward:.4f}")
-            return eval_metrics
-        except Exception as e:
-            self.logger.error(f"Error during model evaluation: {e}")
-            return None
-
-    def cleanup(self):
-        """
-        Clean up resources and close file handles properly.
-        """
-        self.logger.info("Starting cleanup process...")
-        
-        # Close environments if they exist
-        if hasattr(self, 'train_env') and self.train_env:
-            try:
-                # Close any trade loggers
-                if hasattr(self.train_env, 'trade_logger') and self.train_env.trade_logger:
-                    self.logger.info("Closing train environment trade logger...")
-                    # TradeLogger uses append mode, no explicit close needed
-                    
-                # Close any trade tracers  
-                if hasattr(self.train_env, 'trade_tracer') and self.train_env.trade_tracer:
-                    self.logger.info("Closing train environment trade tracer...")
-                    # TradeTracer uses append mode, no explicit close needed
-                    
-            except Exception as e:
-                self.logger.warning(f"Error cleaning up train environment: {e}")
-        
-        if hasattr(self, 'test_env') and self.test_env:
-            try:
-                # Close any trade loggers
-                if hasattr(self.test_env, 'trade_logger') and self.test_env.trade_logger:
-                    self.logger.info("Closing test environment trade logger...")
-                    
-                # Close any trade tracers
-                if hasattr(self.test_env, 'trade_tracer') and self.test_env.trade_tracer:
-                    self.logger.info("Closing test environment trade tracer...")
-                    
-            except Exception as e:
-                self.logger.warning(f"Error cleaning up test environment: {e}")
-        
-        # Close all logging handlers
-        self.logger.info("Closing logging handlers...")
-        close_all_logging_handlers()
-        
-        self.logger.info("Cleanup completed successfully")
-
-def set_random_seeds(seed: int = 42):
-    """
-    Set random seeds for reproducibility across all relevant libraries.
-    
-    Args:
-        seed: Random seed value to use
-    """
-    import random
-    import numpy as np
-    import torch
-    
-    # Set Python's built-in random seed
-    random.seed(seed)
-    
-    # Set NumPy random seed
-    np.random.seed(seed)
-    
-    # Set PyTorch random seeds
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        # For reproducibility on CUDA operations
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    
-    # Set environment variable for additional reproducibility
-    import os
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    
-    print(f"Random seeds set to {seed} for reproducibility")
-
-
-def configure_device(device_preference: str = 'auto') -> str:
-    """
-    Configure and return the device to use for training.
-    
-    Args:
-        device_preference: User preference - 'auto', 'cpu', 'cuda', or 'gpu'
-        
-    Returns:
-        Device string to use ('cpu' or 'cuda')
-    """
-    import torch
-    
-    # Normalize device preference
-    if device_preference.lower() in ['gpu', 'cuda']:
-        device_preference = 'cuda'
-    elif device_preference.lower() == 'cpu':
-        device_preference = 'cpu'
-    else:  # 'auto'
-        device_preference = 'auto'
-    
-    # Check CUDA availability
-    cuda_available = torch.cuda.is_available()
-    
-    if device_preference == 'auto':
-        # Auto-detect best device
-        if cuda_available:
-            device = 'cuda'
-            gpu_name = torch.cuda.get_device_name(0) if torch.cuda.device_count() > 0 else 'Unknown GPU'
-            gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3) if torch.cuda.device_count() > 0 else 0
-            print(f"🚀 Auto-detected CUDA GPU: {gpu_name} ({gpu_memory:.1f}GB)")
-        else:
-            device = 'cpu'
-            print("💻 Auto-detected CPU (CUDA not available)")
-    elif device_preference == 'cuda':
-        # User requested CUDA
-        if cuda_available:
-            device = 'cuda'
-            gpu_name = torch.cuda.get_device_name(0) if torch.cuda.device_count() > 0 else 'Unknown GPU'
-            gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3) if torch.cuda.device_count() > 0 else 0
-            print(f"🚀 Using requested CUDA GPU: {gpu_name} ({gpu_memory:.1f}GB)")
-        else:
-            print("⚠️  CUDA requested but not available, falling back to CPU")
-            device = 'cpu'
-    else:
-        # User requested CPU
-        device = 'cpu'
-        print("💻 Using requested CPU device")
-    
-    # Set PyTorch device
-    torch.set_default_device(device)
-    
-    # Additional CUDA optimizations if using GPU
-    if device == 'cuda':
-        # Enable optimizations for better performance
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        
-        # Clear cache to start fresh
-        torch.cuda.empty_cache()
-        
-        print(f"✅ Device configured: {device.upper()}")
-        print(f"   CUDA Version: {torch.version.cuda}")
-        print(f"   Device Count: {torch.cuda.device_count()}")
-        print(f"   Current Device: {torch.cuda.current_device()}")
-    else:
-        print(f"✅ Device configured: {device.upper()}")
-        cpu_count = torch.get_num_threads()
-        print(f"   CPU Threads: {cpu_count}")
-    
-    return device
-
-
-def close_all_logging_handlers():
-    """
-    Close all logging handlers to release file locks before archiving.
-    """
-    logger = logging.getLogger()
-    handlers_to_remove = []
-    
-    # Collect file handlers
-    for handler in logger.handlers[:]:
-        if isinstance(handler, logging.FileHandler):
-            handlers_to_remove.append(handler)
-    
-    # Close and remove file handlers
-    for handler in handlers_to_remove:
-        handler.close()
-        logger.removeHandler(handler)
-    
-    # Also check and close handlers on specific loggers
-    for name in logging.Logger.manager.loggerDict:
-        specific_logger = logging.getLogger(name)
-        if hasattr(specific_logger, 'handlers'):
-            handlers_to_remove = []
-            for handler in specific_logger.handlers[:]:
-                if isinstance(handler, logging.FileHandler):
-                    handlers_to_remove.append(handler)
-            
-            for handler in handlers_to_remove:
-                handler.close()
-                specific_logger.removeHandler(handler)
-
-def archive_existing_logs_and_models():
-    """
-    Archive existing logs and models before starting new training.
-    Creates timestamped archive folders to preserve previous runs.
-    """
-    # Close all logging handlers first to release file locks
-    print("🔒 Closing logging handlers to prepare for archiving...")
-    close_all_logging_handlers()
-    
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    archive_base = Path("archive") / f"training_run_{timestamp}"
-    
-    # Directories to archive
-    dirs_to_archive = [
-        ("logs", "logs"),
-        ("models", "models"),
-        ("tensorboard", "logs/tensorboard")
-    ]
-    
-    archived_something = False
-    
-    for dir_name, source_path in dirs_to_archive:
-        source = Path(source_path)
-        if source.exists() and any(source.iterdir()):  # Directory exists and is not empty
-            archive_dir = archive_base / dir_name
-            archive_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Move contents to archive with error handling
-            for item in source.iterdir():
-                if item.is_file() or item.is_dir():
-                    try:
-                        shutil.move(str(item), str(archive_dir / item.name))
-                        archived_something = True
-                    except PermissionError as e:
-                        print(f"⚠️  Could not move {item}: {e}")
-                        print(f"   File may still be in use. Skipping: {item}")
-                    except Exception as e:
-                        print(f"⚠️  Error moving {item}: {e}")
-    
-    if archived_something:
-        print(f"📦 Archived previous training data to: {archive_base}")
-    else:
-        print("📦 No previous training data found to archive")
-    
-    return archive_base if archived_something else None
-
-def main():
-    """Main function to run the memory-efficient training pipeline"""
-    load_dotenv()
-    
-    # Archive existing logs and models before starting
-    print("🗃️  Archiving previous training data...")
-    archive_existing_logs_and_models()
-    
-    # Set random seeds for reproducibility
-    set_random_seeds(42)
-    parser = argparse.ArgumentParser(
-        description='Memory-Efficient RL Trading Bot Training',
-        epilog='''
-Examples:
-  # Quick test run with default settings (CPU, 1 episode, ultra-aggressive small trades):
-  python train_memory_efficient.py --consolidated-file data.csv --default
-  
-  # Full training run with GPU:
-  python train_memory_efficient.py --consolidated-file data.csv --total-episodes 10 --device cuda
-  
-  # CPU training with custom settings:
-  python train_memory_efficient.py --consolidated-file data.csv --total-episodes 5 --device cpu --verbose        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    parser.add_argument('--consolidated-file', type=str, required=False,
-                       help='Path to consolidated data file (optional with --default)')
-    parser.add_argument('--total-episodes', type=int, default=10, 
-                       help='Total number of episodes (full dataset passes)')
-    parser.add_argument('--steps-per-batch', type=int, default=1000, 
-                       help='Training steps per data batch')
-    parser.add_argument('--streaming-batch-size', type=int, default=1000, 
-                       help='Number of rows to read per streaming batch')
-    parser.add_argument('--initial-balance', type=float, default=10000, 
-                       help='Initial trading balance')
-    parser.add_argument('--lookback-window', type=int, default=20, 
-                       help='Lookback window for features')
-    parser.add_argument('--train-ratio', type=float, default=0.8, 
-                       help='Train/test split ratio for each batch')
-    parser.add_argument('--reward-strategy', type=str, default='balanced', 
-                       choices=['balanced', 'conservative', 'aggressive'],
-                       help='Reward strategy')
-    parser.add_argument('--encourage-small-trades', action='store_true', 
-                       help='Use small transaction reward config')
-    parser.add_argument('--ultra-aggressive-small-trades', action='store_true', 
-                       help='Use ultra-aggressive small transaction reward config')
-    parser.add_argument('--log-reward-details', action='store_true', 
-                       help='Enable detailed reward logging')
-    parser.add_argument('--save-model-every-episodes', type=int, default=5, 
-                       help='Save model after every N episodes')
-    parser.add_argument('--final-eval-episodes', type=int, default=10, 
-                       help='Number of episodes for final evaluation')
-    parser.add_argument('--random-seed', type=int, default=42,
-                       help='Random seed for reproducibility')
-    parser.add_argument('--device', type=str, default='auto', 
-                       choices=['auto', 'cpu', 'cuda', 'gpu'],
-                       help='Device to use for training: auto (detect best), cpu, cuda/gpu')
-    parser.add_argument('--default', action='store_true',
-                       help='Run with default settings optimized for quick testing (forces CPU, 1 episode, ultra-aggressive small trades)')
-    parser.add_argument('--verbose', action='store_true', 
-                       help='Enable verbose logging')
-    
-    args = parser.parse_args()
-    
-    # Handle --default option with predefined settings
-    if args.default:
-        print("🚀 Using --default mode with optimized settings for quick testing")
-        
-        # Check if consolidated file is provided, if not, use the specified default
-        if not args.consolidated_file:
-            args.consolidated_file = r".\data\processed\BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv"
-            print(f"   Using default consolidated file: {args.consolidated_file}")
-        
-        # Override specific settings for default mode
-        args.total_episodes = 1
-        args.steps_per_batch = 10000
-        args.random_seed = 123
-        args.verbose = True
-        args.ultra_aggressive_small_trades = True
-        args.device = 'cpu'  # Force CPU usage
-        
-        print("   Default settings applied:")
-        print(f"     - Device: CPU (forced)")
-        print(f"     - Episodes: 1")
-        print(f"     - Steps per batch: 10,000")
-        print(f"     - Random seed: 123")
-        print(f"     - Verbose: Enabled")
-        print(f"     - Ultra-aggressive small trades: Enabled")
-        print()
-    
-    # Validate that consolidated file is provided (either via argument or default)
-    if not args.consolidated_file:
-        parser.error("--consolidated-file is required unless using --default mode")
-    
-    # Convert argparse namespace directly into a dictionary
-    config = vars(args)    # Configure device based on user preference
-    actual_device = configure_device(config['device'])
-    config['device'] = actual_device  # Store the actual device used
-    
-    # Override default seed with user-provided seed
-    if config['random_seed'] != 42:
-        set_random_seeds(config['random_seed'])
-    
-    # Configure device for training
-    device = configure_device(config['device'])
-    config['device'] = device  # Store the actual device used
-    
-    # Verify consolidated file exists
-    if not Path(config['consolidated_file']).exists():
-        print(f"❌ Consolidated file not found: {config['consolidated_file']}")
-        print("Please run consolidate_data.py first to create a consolidated file.")
-        sys.exit(1)
-    
-    print("🧠 Memory-Efficient RL Trading Bot Training")
-    print("=" * 50)
-    if config.get('default', False):
-        print("🚀 RUNNING IN DEFAULT MODE (Quick Testing)")
-        print("=" * 50)
-    print(f"Consolidated File: {config['consolidated_file']}")
-    print(f"Device: {config['device'].upper()}")
-    print(f"Total Episodes: {config['total_episodes']}")
-    print(f"Steps per Batch: {config['steps_per_batch']}")
-    print(f"Streaming Batch Size: {config['streaming_batch_size']}")
-    print(f"Initial Balance: ${config['initial_balance']:,.2f}")
-    print(f"Lookback Window: {config['lookback_window']}")
-    print(f"Train Ratio: {config['train_ratio']}")
-    print(f"Reward Strategy: {config['reward_strategy']}")
-    if config['encourage_small_trades']:
-        print("Small Trades: Encouraged")
-    if config['ultra_aggressive_small_trades']:
-        print("Ultra-Aggressive Small Trades: Enabled")
-    print("=" * 50)
-    
-    # Add additional configuration for logging
-    config.update({
-        'console_log_level': 'DEBUG' if config['verbose'] else 'INFO',
-        'file_log_level': 'DEBUG',
-        'trade_logging': True,
-        'trade_tracing': True,
-        'tensorboard_logging': True,
-        'max_eval_batches': 5  # For improved final evaluation
-    })
-    
-    try:
-        # Archive existing logs and models
-        archive_existing_logs_and_models()
-        
-        # Initialize training manager
-        print("🔧 Initializing memory-efficient training manager...")
-        trainer = MemoryEfficientTrainingManager(config)
-        
-        # Run training
-        print("🚀 Starting training pipeline...")
-        start_time = time.time()
-        
-        final_metrics = trainer.run_complete_training(config['consolidated_file'])
-        
-        end_time = time.time()
-        total_time = end_time - start_time
-        
-        # Clean up resources before reporting results
-        print("🧹 Cleaning up resources...")
-        trainer.cleanup()
-        
-        # Print results
-        print("\n" + "=" * 50)
-        print("🎉 TRAINING COMPLETED!")
-        print("=" * 50)
-        print(f"Total Time: {total_time:.1f} seconds ({total_time/60:.1f} minutes)")
-        print(f"Episodes: {final_metrics.get('successful_episodes', 0)}/{final_metrics.get('total_episodes', 0)}")
-        
-        if 'mean_episode_reward' in final_metrics:
-            print(f"Mean Episode Reward: {final_metrics['mean_episode_reward']:.4f}")
-            print(f"Best Episode Reward: {final_metrics['best_episode_reward']:.4f}")
-        
-        if 'final_evaluation' in final_metrics and 'mean_reward' in final_metrics['final_evaluation']:
-            print(f"Final Evaluation Reward: {final_metrics['final_evaluation']['mean_reward']:.4f}")
-        
-        # Display trade statistics
-        if 'trade_statistics' in final_metrics and final_metrics['trade_statistics']:
-            trade_stats = final_metrics['trade_statistics']
-            print("\n📊 TRADE STATISTICS:")
-            
-            if 'final_balance' in trade_stats:
-                print(f"Final Balance: ${trade_stats['final_balance']:.2f}")
-            if 'total_return' in trade_stats:
-                print(f"Total Return: {trade_stats['total_return']:.2%}")
-        try:
-            self.logger.info("Evaluating model on the test set...")
-            eval_metrics = self.model.evaluate(
-                eval_env=self.test_env,
-                n_eval_episodes=1,
-                deterministic=True
-            )
-            
+                deterministic=True            )            
             mean_reward = eval_metrics.get('mean_reward', 0.0)
             self.logger.info(f"Evaluation completed. Mean reward: {mean_reward:.4f}")
         except Exception as e:
             self.logger.error(f"Error during model evaluation: {e}")
             raise
+            
     def cleanup(self):
         """
         Clean up resources and close file handles properly.
         """
         self.logger.info("Starting cleanup process...")
         
+        # Save final session logs and archives
+        try:
+            self.logger.info("Archiving final training session logs...")
+            session_name = f"final_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Save and archive model if it exists
+            if hasattr(self, 'model') and self.model is not None:
+                self.logger.info("Saving final model with archiving...")
+                final_model_path = Path(self.config.get('final_model_path', 'models/final_model'))
+                self.model.archive_and_save_model(final_model_path, create_archive=True)
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to archive final session: {e}")
+        
         # Close environments if they exist
         if hasattr(self, 'train_env') and self.train_env:
             try:
-                # Close any trade loggers
+                # Save and close trade loggers
                 if hasattr(self.train_env, 'trade_logger') and self.train_env.trade_logger:
-                    self.logger.info("Closing train environment trade logger...")
-                    # TradeLogger uses append mode, no explicit close needed
+                    self.logger.info("Saving and closing train environment trade logger...")
+                    self.train_env.trade_logger.save_session("training_session")
                     
                 # Close any trade tracers  
                 if hasattr(self.train_env, 'trade_tracer') and self.train_env.trade_tracer:
@@ -1096,9 +820,10 @@ Examples:
         
         if hasattr(self, 'test_env') and self.test_env:
             try:
-                # Close any trade loggers
+                # Save and close trade loggers
                 if hasattr(self.test_env, 'trade_logger') and self.test_env.trade_logger:
-                    self.logger.info("Closing test environment trade logger...")
+                    self.logger.info("Saving and closing test environment trade logger...")
+                    self.test_env.trade_logger.save_session("testing_session")
                     
                 # Close any trade tracers
                 if hasattr(self.test_env, 'trade_tracer') and self.test_env.trade_tracer:
@@ -1107,422 +832,78 @@ Examples:
             except Exception as e:
                 self.logger.warning(f"Error cleaning up test environment: {e}")
         
-        # Close all logging handlers
-        self.logger.info("Closing logging handlers...")
-        close_all_logging_handlers()
-        
-        self.logger.info("Cleanup completed successfully")
-
-def set_random_seeds(seed: int = 42):
-    """
-    Set random seeds for reproducibility across all relevant libraries.
-    
-    Args:
-        seed: Random seed value to use
-    """
-    import random
-    import numpy as np
-    import torch
-    
-    # Set Python's built-in random seed
-    random.seed(seed)
-    
-    # Set NumPy random seed
-    np.random.seed(seed)
-    
-    # Set PyTorch random seeds
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        # For reproducibility on CUDA operations
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    
-    # Set environment variable for additional reproducibility
-    import os
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    
-    print(f"Random seeds set to {seed} for reproducibility")
-
-
-def configure_device(device_preference: str = 'auto') -> str:
-    """
-    Configure and return the device to use for training.
-    
-    Args:
-        device_preference: User preference - 'auto', 'cpu', 'cuda', or 'gpu'
-        
-    Returns:
-        Device string to use ('cpu' or 'cuda')
-    """
-    import torch
-    
-    # Normalize device preference
-    if device_preference.lower() in ['gpu', 'cuda']:
-        device_preference = 'cuda'
-    elif device_preference.lower() == 'cpu':
-        device_preference = 'cpu'
-    else:  # 'auto'
-        device_preference = 'auto'
-    
-    # Check CUDA availability
-    cuda_available = torch.cuda.is_available()
-    
-    if device_preference == 'auto':
-        # Auto-detect best device
-        if cuda_available:
-            device = 'cuda'
-            gpu_name = torch.cuda.get_device_name(0) if torch.cuda.device_count() > 0 else 'Unknown GPU'
-            gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3) if torch.cuda.device_count() > 0 else 0
-            print(f"🚀 Auto-detected CUDA GPU: {gpu_name} ({gpu_memory:.1f}GB)")
-        else:
-            device = 'cpu'
-            print("💻 Auto-detected CPU (CUDA not available)")
-    elif device_preference == 'cuda':
-        # User requested CUDA
-        if cuda_available:
-            device = 'cuda'
-            gpu_name = torch.cuda.get_device_name(0) if torch.cuda.device_count() > 0 else 'Unknown GPU'
-            gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3) if torch.cuda.device_count() > 0 else 0
-            print(f"🚀 Using requested CUDA GPU: {gpu_name} ({gpu_memory:.1f}GB)")
-        else:
-            print("⚠️  CUDA requested but not available, falling back to CPU")
-            device = 'cpu'
-    else:
-        # User requested CPU
-        device = 'cpu'
-        print("💻 Using requested CPU device")
-    
-    # Set PyTorch device
-    torch.set_default_device(device)
-    
-    # Additional CUDA optimizations if using GPU
-    if device == 'cuda':
-        # Enable optimizations for better performance
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        
-        # Clear cache to start fresh
-        torch.cuda.empty_cache()
-        
-        print(f"✅ Device configured: {device.upper()}")
-        print(f"   CUDA Version: {torch.version.cuda}")
-        print(f"   Device Count: {torch.cuda.device_count()}")
-        print(f"   Current Device: {torch.cuda.current_device()}")
-    else:
-        print(f"✅ Device configured: {device.upper()}")
-        cpu_count = torch.get_num_threads()
-        print(f"   CPU Threads: {cpu_count}")
-    
-    return device
-
-
-def close_all_logging_handlers():
-    """
-    Close all logging handlers to release file locks before archiving.
-    """
-    logger = logging.getLogger()
-    handlers_to_remove = []
-    
-    # Collect file handlers
-    for handler in logger.handlers[:]:
-        if isinstance(handler, logging.FileHandler):
-            handlers_to_remove.append(handler)
-    
-    # Close and remove file handlers
-    for handler in handlers_to_remove:
-        handler.close()
-        logger.removeHandler(handler)
-    
-    # Also check and close handlers on specific loggers
-    for name in logging.Logger.manager.loggerDict:
-        specific_logger = logging.getLogger(name)
-        if hasattr(specific_logger, 'handlers'):
-            handlers_to_remove = []
-            for handler in specific_logger.handlers[:]:
-                if isinstance(handler, logging.FileHandler):
-                    handlers_to_remove.append(handler)
-            
-            for handler in handlers_to_remove:
-                handler.close()
-                specific_logger.removeHandler(handler)
-
-def archive_existing_logs_and_models():
-    """
-    Archive existing logs and models before starting new training.
-    Creates timestamped archive folders to preserve previous runs.
-    """
-    # Close all logging handlers first to release file locks
-    print("🔒 Closing logging handlers to prepare for archiving...")
-    close_all_logging_handlers()
-    
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    archive_base = Path("archive") / f"training_run_{timestamp}"
-    
-    # Directories to archive
-    dirs_to_archive = [
-        ("logs", "logs"),
-        ("models", "models"),
-        ("tensorboard", "logs/tensorboard")
-    ]
-    
-    archived_something = False
-    
-    for dir_name, source_path in dirs_to_archive:
-        source = Path(source_path)
-        if source.exists() and any(source.iterdir()):  # Directory exists and is not empty
-            archive_dir = archive_base / dir_name
-            archive_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Move contents to archive with error handling
-            for item in source.iterdir():
-                if item.is_file() or item.is_dir():
-                    try:
-                        shutil.move(str(item), str(archive_dir / item.name))
-                        archived_something = True
-                    except PermissionError as e:
-                        print(f"⚠️  Could not move {item}: {e}")
-                        print(f"   File may still be in use. Skipping: {item}")
-                    except Exception as e:
-                        print(f"⚠️  Error moving {item}: {e}")
-    
-    if archived_something:
-        print(f"📦 Archived previous training data to: {archive_base}")
-    else:
-        print("📦 No previous training data found to archive")
-    
-    return archive_base if archived_something else None
+        self.logger.info("Cleanup process finished.")
 
 def main():
-    """Main function to run the memory-efficient training pipeline"""
-    load_dotenv()
-    
-    # Archive existing logs and models before starting
-    print("🗃️  Archiving previous training data...")
-    archive_existing_logs_and_models()
-    
-    # Set random seeds for reproducibility
-    set_random_seeds(42)
-    parser = argparse.ArgumentParser(
-        description='Memory-Efficient RL Trading Bot Training',
-        epilog='''
-Examples:
-  # Quick test run with default settings (CPU, 1 episode, ultra-aggressive small trades):
-  python train_memory_efficient.py --consolidated-file data.csv --default
-  
-  # Full training run with GPU:
-  python train_memory_efficient.py --consolidated-file data.csv --total-episodes 10 --device cuda
-  
-  # CPU training with custom settings:
-  python train_memory_efficient.py --consolidated-file data.csv --total-episodes 5 --device cpu --verbose        ''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    parser.add_argument('--consolidated-file', type=str, required=False,
-                       help='Path to consolidated data file (optional with --default)')
-    parser.add_argument('--total-episodes', type=int, default=10, 
-                       help='Total number of episodes (full dataset passes)')
-    parser.add_argument('--steps-per-batch', type=int, default=1000, 
-                       help='Training steps per data batch')
-    parser.add_argument('--streaming-batch-size', type=int, default=1000, 
-                       help='Number of rows to read per streaming batch')
-    parser.add_argument('--initial-balance', type=float, default=10000, 
-                       help='Initial trading balance')
-    parser.add_argument('--lookback-window', type=int, default=20, 
-                       help='Lookback window for features')
-    parser.add_argument('--train-ratio', type=float, default=0.8, 
-                       help='Train/test split ratio for each batch')
-    parser.add_argument('--reward-strategy', type=str, default='balanced', 
-                       choices=['balanced', 'conservative', 'aggressive'],
-                       help='Reward strategy')
-    parser.add_argument('--encourage-small-trades', action='store_true', 
-                       help='Use small transaction reward config')
-    parser.add_argument('--ultra-aggressive-small-trades', action='store_true', 
-                       help='Use ultra-aggressive small transaction reward config')
-    parser.add_argument('--log-reward-details', action='store_true', 
-                       help='Enable detailed reward logging')
-    parser.add_argument('--save-model-every-episodes', type=int, default=5, 
-                       help='Save model after every N episodes')
-    parser.add_argument('--final-eval-episodes', type=int, default=10, 
-                       help='Number of episodes for final evaluation')
-    parser.add_argument('--random-seed', type=int, default=42,
-                       help='Random seed for reproducibility')
-    parser.add_argument('--device', type=str, default='auto', 
-                       choices=['auto', 'cpu', 'cuda', 'gpu'],
-                       help='Device to use for training: auto (detect best), cpu, cuda/gpu')
-    parser.add_argument('--default', action='store_true',
-                       help='Run with default settings optimized for quick testing (forces CPU, 1 episode, ultra-aggressive small trades)')
-    parser.add_argument('--verbose', action='store_true', 
-                       help='Enable verbose logging')
-    
+    """Main function to run the training process"""
+    parser = argparse.ArgumentParser(description="Memory-Efficient RL Trading Bot Trainer")
+    parser.add_argument("--config", type=str, default="config/config.json", help="Path to the configuration file")
+    parser.add_argument("--logging-config", type=str, default="config/logging_config.json", help="Path to the logging configuration file")
+    parser.add_argument("--default", action="store_true", help="Use default settings with automatic archiving enabled.")
+    parser.add_argument("--no-archive", action="store_true", help="Skip archiving previous logs and models")
     args = parser.parse_args()
-    
-    # Handle --default option with predefined settings
-    if args.default:
-        print("🚀 Using --default mode with optimized settings for quick testing")
-        
-        # Check if consolidated file is provided, if not, use the specified default
-        if not args.consolidated_file:
-            args.consolidated_file = r".\data\processed\BINANCEFTS_PERP_BTC_USDT_15m_2024-01-01_to_2025-04-01_consolidated.csv"
-            print(f"   Using default consolidated file: {args.consolidated_file}")
-        
-        # Override specific settings for default mode
-        args.total_episodes = 1
-        args.steps_per_batch = 10000
-        args.random_seed = 123
-        args.verbose = True
-        args.ultra_aggressive_small_trades = True
-        args.device = 'cpu'  # Force CPU usage
-        
-        print("   Default settings applied:")
-        print(f"     - Device: CPU (forced)")
-        print(f"     - Episodes: 1")
-        print(f"     - Steps per batch: 10,000")
-        print(f"     - Random seed: 123")
-        print(f"     - Verbose: Enabled")
-        print(f"     - Ultra-aggressive small trades: Enabled")
-        print()
-    
-    # Validate that consolidated file is provided (either via argument or default)
-    if not args.consolidated_file:
-        parser.error("--consolidated-file is required unless using --default mode")
-    
-    # Convert argparse namespace directly into a dictionary
-    config = vars(args)    # Configure device based on user preference
-    actual_device = configure_device(config['device'])
-    config['device'] = actual_device  # Store the actual device used
-    
-    # Override default seed with user-provided seed
-    if config['random_seed'] != 42:
-        set_random_seeds(config['random_seed'])
-    
-    # Configure device for training
-    device = configure_device(config['device'])
-    config['device'] = device  # Store the actual device used
-    
-    # Verify consolidated file exists
-    if not Path(config['consolidated_file']).exists():
-        print(f"❌ Consolidated file not found: {config['consolidated_file']}")
-        print("Please run consolidate_data.py first to create a consolidated file.")
-        sys.exit(1)
-    
-    print("🧠 Memory-Efficient RL Trading Bot Training")
-    print("=" * 50)
-    if config.get('default', False):
-        print("🚀 RUNNING IN DEFAULT MODE (Quick Testing)")
-        print("=" * 50)
-    print(f"Consolidated File: {config['consolidated_file']}")
-    print(f"Device: {config['device'].upper()}")
-    print(f"Total Episodes: {config['total_episodes']}")
-    print(f"Steps per Batch: {config['steps_per_batch']}")
-    print(f"Streaming Batch Size: {config['streaming_batch_size']}")
-    print(f"Initial Balance: ${config['initial_balance']:,.2f}")
-    print(f"Lookback Window: {config['lookback_window']}")
-    print(f"Train Ratio: {config['train_ratio']}")
-    print(f"Reward Strategy: {config['reward_strategy']}")
-    if config['encourage_small_trades']:
-        print("Small Trades: Encouraged")
-    if config['ultra_aggressive_small_trades']:
-        print("Ultra-Aggressive Small Trades: Enabled")
-    print("=" * 50)
-    
-    # Add additional configuration for logging
-    config.update({
-        'console_log_level': 'DEBUG' if config['verbose'] else 'INFO',
-        'file_log_level': 'DEBUG',
-        'trade_logging': True,
-        'trade_tracing': True,
-        'tensorboard_logging': True,
-        'max_eval_batches': 5  # For improved final evaluation
-    })
-    
-    try:
-        # Archive existing logs and models
-        archive_existing_logs_and_models()
-        
-        # Initialize training manager
-        print("🔧 Initializing memory-efficient training manager...")
-        trainer = MemoryEfficientTrainingManager(config)
-        
-        # Run training
-        print("🚀 Starting training pipeline...")
-        start_time = time.time()
-        
-        final_metrics = trainer.run_complete_training(config['consolidated_file'])
-        
-        end_time = time.time()
-        total_time = end_time - start_time
-        
-        # Clean up resources before reporting results
-        print("🧹 Cleaning up resources...")
-        trainer.cleanup()
-        
-        # Print results
-        print("\n" + "=" * 50)
-        print("🎉 TRAINING COMPLETED!")
-        print("=" * 50)
-        print(f"Total Time: {total_time:.1f} seconds ({total_time/60:.1f} minutes)")
-        print(f"Episodes: {final_metrics.get('successful_episodes', 0)}/{final_metrics.get('total_episodes', 0)}")
-        
-        if 'mean_episode_reward' in final_metrics:
-            print(f"Mean Episode Reward: {final_metrics['mean_episode_reward']:.4f}")
-            print(f"Best Episode Reward: {final_metrics['best_episode_reward']:.4f}")
-        
-        if 'final_evaluation' in final_metrics and 'mean_reward' in final_metrics['final_evaluation']:
-            print(f"Final Evaluation Reward: {final_metrics['final_evaluation']['mean_reward']:.4f}")
-        
-        # Display trade statistics
-        if 'trade_statistics' in final_metrics and final_metrics['trade_statistics']:
-            trade_stats = final_metrics['trade_statistics']
-            print("\n📊 TRADE STATISTICS:")
-            
-            if 'final_balance' in trade_stats:
-                print(f"Final Balance: ${trade_stats['final_balance']:.2f}")
-            if 'total_return' in trade_stats:
-                print(f"Total Return: {trade_stats['total_return']:.2%}")
-            if 'total_trades' in trade_stats:
-                print(f"Total Trades: {trade_stats['total_trades']}")
-            if 'win_rate' in trade_stats:
-                print(f"Win Rate: {trade_stats['win_rate']:.2%}")
-            if 'profit_factor' in trade_stats:
-                if trade_stats['profit_factor'] == float('inf'):
-                    print(f"Profit Factor: ∞ (no losses)")
-                else:
-                    print(f"Profit Factor: {trade_stats['profit_factor']:.2f}")
-            if 'max_drawdown' in trade_stats:
-                print(f"Max Drawdown: {trade_stats['max_drawdown']:.2%}")
-            if 'total_commission' in trade_stats:
-                print(f"Total Commission: ${trade_stats['total_commission']:.2f}")
-        
-        print("=" * 50)
-        
-        # Save training report
-        report_path = Path("logs") / f"training_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        with open(report_path, 'w') as f:
-            f.write("Memory-Efficient Training Report\n")
-            f.write("=" * 40 + "\n")
-            f.write(f"Consolidated File: {config['consolidated_file']}\n")
-            f.write(f"Training Time: {total_time:.1f} seconds\n")
-            f.write(f"Episodes: {final_metrics.get('successful_episodes', 0)}/{final_metrics.get('total_episodes', 0)}\n")
-            f.write(f"Configuration: {config}\n")
-            f.write(f"Final Metrics: {final_metrics}\n")
-        
-        print(f"📄 Training report saved to: {report_path}")
-        
-    except Exception as e:
-        # Try to cleanup even if training failed
-        try:
-            if 'trainer' in locals():
-                print("🧹 Cleaning up resources after error...")
-                trainer.cleanup()
-        except Exception as cleanup_error:
-            print(f"⚠️  Cleanup failed: {cleanup_error}")
-        
-        print(f"❌ Training failed: {e}")
-        print("Check logs in logs/ directory for detailed error information")
-        sys.exit(1)
 
-if __name__ == "__main__":
+    # Archive previous training session before starting new one (unless disabled)
+    # When using --default, always enable archiving unless explicitly disabled with --no-archive
+    should_archive = not args.no_archive
+    if args.default:
+        print("🔧 Using default settings with automatic archiving enabled")
+        should_archive = True  # Force archiving when using --default
+        
+    if should_archive:
+        try:
+            print("🗄️  Archiving previous training session...")
+            session_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+            archive_path = archive_before_training(session_name)
+            if archive_path:
+                print(f"✅ Previous session archived to: {archive_path}")
+            else:
+                print("ℹ️  No previous session found to archive")
+        except Exception as e:
+            print(f"⚠️  Warning: Failed to archive previous session: {e}")
+            print("Continuing with training...")
+
+    # Setup logging
+    logging_config_path = Path(args.logging_config)
+    if logging_config_path.exists():
+        with open(logging_config_path, 'rt') as f:
+            log_config = json.load(f)
+        logging.config.dictConfig(log_config)
+    else:
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    logger = logging.getLogger(__name__)
+    trainer = None
+    try:
+        logger.info("Initializing Trainer...")
+        # Load configuration
+        config = load_training_config(args.config)
+        
+        # Print the loaded configuration to the log
+        logger.info("=" * 60)
+        logger.info("TRAINING CONFIGURATION")
+        logger.info("=" * 60)
+        for key, value in config.items():
+            if isinstance(value, dict):
+                logger.info(f"{key}:")
+                for sub_key, sub_value in value.items():
+                    logger.info(f"  {sub_key}: {sub_value}")
+            else:
+                logger.info(f"{key}: {value}")
+        logger.info("=" * 60)
+        
+        trainer = Trainer(config=config)
+        logger.info("Trainer initialized. Starting training run...")
+        trainer.run_complete_training(config['consolidated_file'])
+        logger.info("Training run completed.")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        logger.error(traceback.format_exc())
+    finally:
+        if trainer:
+            logger.info("Cleaning up resources...")
+            trainer.cleanup()
+            logger.info("Resources cleaned up.")
+
+if __name__ == '__main__':
     main()

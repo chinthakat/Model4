@@ -1,0 +1,61 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        },
+        "detailed": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "level": "INFO"
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/training.log",
+            "formatter": "detailed",
+            "level": "DEBUG",
+            "maxBytes": 10485760,
+            "backupCount": 5
+        },
+        "trade_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/trades/trade_execution.log",
+            "formatter": "standard",
+            "level": "INFO",
+            "maxBytes": 5242880,
+            "backupCount": 3
+        }
+    },
+    "loggers": {
+        "environment": {
+            "handlers": ["console", "file", "trade_file"],
+            "level": "DEBUG",
+            "propagate": false
+        },
+        "model": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": false
+        },
+        "utils.trade_logger": {
+            "handlers": ["console", "trade_file"],
+            "level": "INFO",
+            "propagate": false
+        },
+        "utils.trade_tracer": {
+            "handlers": ["console", "trade_file"],
+            "level": "INFO",
+            "propagate": false
+        }
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "INFO"
+    }
+}
