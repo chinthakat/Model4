@@ -731,8 +731,8 @@ def main():
     parser = argparse.ArgumentParser(description="Memory-Efficient RL Trading Bot Trainer")
     parser.add_argument("--config", type=str, default="config/config.json", help="Path to the configuration file")
     parser.add_argument("--logging-config", type=str, default="config/logging_config.json", help="Path to the logging configuration file")
-    parser.add_argument("--default", action="store_true", help="Use default settings with automatic archiving enabled.")
-    parser.add_argument("--training", action="store_true", help="Use synthetic balanced training data for initial RL learning.")
+    parser.add_argument("--default", action="store_true", help="Use real market data with enhanced exploration and automatic archiving.")
+    parser.add_argument("--training", action="store_true", help="Use synthetic balanced training data with enhanced exploration for initial RL learning.")
     parser.add_argument("--no-archive", action="store_true", help="Skip archiving previous logs and models")
     args = parser.parse_args()
 
@@ -778,26 +778,32 @@ def main():
     try:
         logger.info("Initializing Trainer...")        # Load configuration
         config = load_training_config(args.config)
-        
-        # Handle --training flag to use synthetic balanced data
+          # Handle --training flag to use synthetic balanced data
         if args.training:
             synthetic_data_path = "data/processed/SYNTHETIC_SIMPLE_BTC_15m_training.csv"
             if Path(synthetic_data_path).exists():
                 original_file = config['consolidated_file']
                 config['consolidated_file'] = synthetic_data_path
-                print("🎯 TRAINING MODE: Using synthetic balanced training data")
+                # Ensure enhanced exploration is used with training data
+                config['reward_strategy'] = 'enhanced_exploration'
+                print("🎯 TRAINING MODE: Using synthetic balanced training data + enhanced exploration")
                 print(f"   📁 Original data: {original_file}")
                 print(f"   🔄 Training data: {synthetic_data_path}")
                 print("   📈 This data contains balanced LONG, SHORT, and HOLD patterns")
+                print("   🚀 Enhanced exploration enabled for improved action diversity!")
                 print("   🎯 Perfect for teaching your RL agent all three action types!")
             else:
                 print(f"❌ Warning: Synthetic training data not found at {synthetic_data_path}")
                 print("   Please run generate_simple_synthetic_data.py first!")
-                print("   Falling back to original data...")
+                print("   Falling back to original data with enhanced exploration...")
+                config['reward_strategy'] = 'enhanced_exploration'
         
         # Handle --default flag settings
         if args.default:
-            print("🔧 DEFAULT MODE: Using standard settings with archiving")
+            # Ensure enhanced exploration is used with default data
+            config['reward_strategy'] = 'enhanced_exploration'
+            print("🔧 DEFAULT MODE: Using real data + enhanced exploration + archiving")
+            print("   🚀 Enhanced exploration enabled for improved SHORT/LONG/CLOSE balance!")
         
         # Print the loaded configuration to the log
         logger.info("=" * 60)
