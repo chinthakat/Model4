@@ -8,5 +8,21 @@ data/
 # Log files
 logs/
 
+# Model files and training outputs
+models/
+*.pkl
+*.zip
+
+# Generated graphs and visualizations
+graphs/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# Archive directories
+archives/
+
 # VSCode settings
 .vscode/
