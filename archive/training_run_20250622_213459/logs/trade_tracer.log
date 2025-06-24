@@ -1,1 +1,0 @@
-2025-06-22 21:34:38,139 - utils.trade_tracer - INFO - Initialized TradeTracer. JSONL traces in: logs\trade_traces\trade_traces.jsonl. Text logs in: logs\trade_tracer.log

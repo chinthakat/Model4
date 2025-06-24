@@ -1,4 +1,3 @@
-
 import numpy as np
 
 class LiquidationTracker:
@@ -44,3 +43,14 @@ class LiquidationTracker:
     def is_liquidation_imminent(self, current_prices):
         margin_level = self.calculate_margin_level(current_prices)
         return margin_level < self.liquidation_threshold
+
+    def get_trades_to_close(self, current_prices):
+        trades_with_pnl = []
+        for trade_id, trade in self.open_trades.items():
+            unrealized_pnl = (current_prices[trade_id] - trade['entry_price']) * trade['position_size']
+            if unrealized_pnl < 0:
+                trades_with_pnl.append((trade_id, unrealized_pnl))
+        
+        trades_with_pnl.sort(key=lambda x: x[1])
+        
+        return [trade[0] for trade in trades_with_pnl]

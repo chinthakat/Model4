@@ -295,7 +295,6 @@ class TradingEnvironment(gym.Env):
         self.peak_equity = initial_balance
         self.total_trades = 0
         self.winning_trades = 0
-        self.closed_trades = []
         
         # Reset individual trades system
         if self.liquidation_tracker:
@@ -348,7 +347,6 @@ class TradingEnvironment(gym.Env):
         self.peak_equity = self.initial_balance
         self.total_trades = 0
         self.winning_trades = 0
-        self.closed_trades = []
         
         # Reset individual trades system
         if self.liquidation_tracker:
@@ -469,12 +467,41 @@ class TradingEnvironment(gym.Env):
         elif self.equity <= self.initial_balance * 0.1:  # Stop loss at 90% loss
             terminated = True
         
-        # Check for liquidation
+        # Check for liquidation and handle if necessary
         if self.liquidation_tracker:
-            current_prices = {trade_id: self._get_current_price() for trade_id in self.liquidation_tracker.open_trades}
+            current_prices = {trade['trade_id']: self._get_current_price() for trade in self.open_trades}
             if self.liquidation_tracker.is_liquidation_imminent(current_prices):
-                terminated = True
-                self.logger.warning("Liquidation event! Episode terminated.")
+                self.logger.warning("Liquidation risk detected! Attempting to close losing trades.")
+                
+                # Get trades to close, sorted by largest loss
+                trades_to_close_ids = self.liquidation_tracker.get_trades_to_close(current_prices)
+                
+                for trade_id_to_close in trades_to_close_ids:
+                    # Find the trade index from the trade_id
+                    trade_index_to_close = -1
+                    for i, trade in enumerate(self.open_trades):
+                        if trade['trade_id'] == trade_id_to_close:
+                            trade_index_to_close = i
+                            break
+                    
+                    if trade_index_to_close != -1:
+                        self.logger.info(f"Closing trade {trade_id_to_close} to mitigate liquidation risk.")
+                        market_data = self._extract_market_data()
+                        self._close_individual_trade(trade_index_to_close, self._get_current_price(), market_data)
+                        
+                        # Re-check liquidation risk
+                        current_prices = {trade['trade_id']: self._get_current_price() for trade in self.open_trades}
+                        if not self.liquidation_tracker.is_liquidation_imminent(current_prices):
+                            self.logger.info("Liquidation risk mitigated.")
+                            break # Exit the loop if risk is gone
+                    else:
+                        self.logger.warning(f"Could not find trade with id {trade_id_to_close} to close.")
+
+                # If still at risk after closing losing trades, terminate
+                current_prices = {trade['trade_id']: self._get_current_price() for trade in self.open_trades}
+                if self.liquidation_tracker.is_liquidation_imminent(current_prices):
+                    terminated = True
+                    self.logger.warning("Liquidation event! Episode terminated after attempting to close trades.")
         
         # Get new observation
         obs = self._get_observation()
@@ -738,31 +765,63 @@ class TradingEnvironment(gym.Env):
             fallback_size = self.obs_size
             return np.zeros(fallback_size, dtype=np.float32)
 
-    def get_episode_statistics(self) -> Dict[str, Any]:
+    def _get_observation_dict(self) -> Dict[str, Any]:
         """
-        Calculate and return final episode statistics.
-        """
-        # Update final stats before returning
-        self.episode_stats['total_return'] = (self.equity / self.initial_balance) - 1.0 if self.initial_balance > 0 else 0.0
-        self.episode_stats['total_trades'] = self.total_trades
-        if self.total_trades > 0:
-            self.episode_stats['win_rate'] = self.winning_trades / self.total_trades
-        else:
-            self.episode_stats['win_rate'] = 0.0
-        self.episode_stats['max_drawdown'] = self.max_drawdown
+        Get current observation as a dictionary for logging, with filtering for relevance.
         
-        # A simple profit factor calculation
-        total_profit = sum(trade.get('realized_pnl', 0) for trade in self.closed_trades if trade.get('realized_pnl', 0) > 0)
-        total_loss = abs(sum(trade.get('realized_pnl', 0) for trade in self.closed_trades if trade.get('realized_pnl', 0) < 0))
-        if total_loss > 0:
-            self.episode_stats['profit_factor'] = total_profit / total_loss
+        Returns:
+            A dictionary containing the structured and filtered observation space.
+        """
+        # Market Features (only the most recent step for conciseness)
+        if self.current_step < len(self.data):
+            market_features = self.data[self.feature_columns].iloc[self.current_step].to_dict()
+            # Clean for JSON
+            for k, v in market_features.items():
+                if pd.isna(v):
+                    market_features[k] = None
         else:
-            self.episode_stats['profit_factor'] = float('inf') if total_profit > 0 else 1.0
-            
-        self.episode_stats['final_balance'] = self.equity
-        self.episode_stats['total_commission'] = self.total_commission
+            market_features = {}
 
-        return self.episode_stats
+        # Portfolio Features (all are generally relevant)
+        current_price = self._get_current_price()
+        total_unrealized_pnl = self._get_total_unrealized_pnl()
+        net_position_size = self._get_net_position_size()
+        current_frequency = (self.reward_calculator.trade_frequency_counter *
+                           max(self.current_step, 1)) if self.current_step > 0 else 0.0
+        normalized_steps_since_trade = min(self.reward_calculator.steps_since_last_trade / 50.0, 1.0)
+
+        portfolio_features = {
+            "normalized_balance": self.balance / self.initial_balance,
+            "equity": self.equity,
+            "net_position_value_fraction": (net_position_size * current_price) / self.initial_balance if self.initial_balance > 0 else 0,
+            "has_open_positions": float(len(self.open_trades) > 0),
+            "total_unrealized_pnl_normalized": total_unrealized_pnl / self.initial_balance if self.initial_balance > 0 else 0,
+            "trade_frequency": current_frequency,
+            "normalized_steps_since_trade": normalized_steps_since_trade,
+            "open_trades_count": len(self.open_trades)
+        }
+
+        # Individual Trades Features (all are relevant)
+        individual_trades_features = []
+        for trade in self.open_trades:
+            trade_features = {
+                "trade_id": trade.get("trade_id"),
+                "side": trade.get("side"),
+                "unrealized_pnl_pct": (trade.get("unrealized_pnl", 0) / self.initial_balance) if self.initial_balance > 0 else 0,
+                "size_btc": trade.get("size_btc"),
+                "steps_held": trade.get("steps_held"),
+                "leverage": trade.get("leverage")
+            }
+            individual_trades_features.append(trade_features)
+
+        # Filtered observation space for logging
+        observation_dict = {
+            "market_context": market_features,
+            "portfolio_overview": portfolio_features,
+            "open_trades_details": individual_trades_features
+        }
+        
+        return observation_dict
 
     def _get_info(self) -> Dict[str, Any]:
         """Get environment info dictionary with individual trade support"""
@@ -1110,7 +1169,7 @@ class TradingEnvironment(gym.Env):
         
         self.logger.info(f"Closed {trade['side']} trade {trade['trade_id']}: {realized_pnl:+.2f} P&L (held {close_info['steps_held']} steps)")
         
-        self.closed_trades.append(close_info)
+
         
         # Log trade closing for tracing
         if self.enable_trade_tracing and self.trade_tracer:

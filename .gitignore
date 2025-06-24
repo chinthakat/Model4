@@ -1,0 +1,12 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Data files
+data/
+
+# Log files
+logs/
+
+# VSCode settings
+.vscode/
