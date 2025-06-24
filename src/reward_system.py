@@ -871,9 +871,14 @@ BALANCED_ENHANCED_CONFIG = {
     'frequent_trading_bonus': 8.0,      # Bonus for optimal trading frequency
     'gradual_position_bonus': 12.0,     # Bonus for building positions gradually
     'optimal_trade_frequency': 12,      # 12 trades per 100 steps
-    
-    'consistent_volume_bonus': 6.0,     # Bonus for consistent trade volumes
+      'consistent_volume_bonus': 6.0,     # Bonus for consistent trade volumes
     'preferred_volume_range': (0.05, 0.20),  # 5-20% of balance per trade
+    
+    # NEW: Trade management rewards/penalties
+    'trade_limit_penalty_base': -10.0,   # Base penalty for opening trades over limit
+    'trade_limit_penalty_scale': 2.0,    # Scale factor as trades approach max
+    'close_bonus_base': 5.0,             # Base bonus for closing trades when too many open
+    'close_bonus_scale': 1.0,            # Scale factor for close bonus
     
     'log_rewards': False
 }
@@ -907,9 +912,14 @@ SMALL_TRANSACTION_CONFIG = {
     'frequent_trading_bonus': 25.0,     # Massive bonus for frequent trading
     'gradual_position_bonus': 30.0,     # Massive bonus for gradual building
     'optimal_trade_frequency': 20,      # 20 trades per 100 steps (very frequent)
-    
-    'consistent_volume_bonus': 15.0,    # Very strong bonus for consistency
+      'consistent_volume_bonus': 15.0,    # Very strong bonus for consistency
     'preferred_volume_range': (0.02, 0.10),  # 2-10% of balance per trade (much smaller)
+    
+    # NEW: Trade management rewards/penalties
+    'trade_limit_penalty_base': -15.0,   # Higher penalty for opening trades over limit
+    'trade_limit_penalty_scale': 2.5,    # Higher scale factor as trades approach max
+    'close_bonus_base': 8.0,             # Higher bonus for closing trades when too many open
+    'close_bonus_scale': 1.5,            # Higher scale factor for close bonus
     
     'log_rewards': False
 }
@@ -948,9 +958,14 @@ ULTRA_SMALL_TRANSACTION_CONFIG = {
     'frequent_trading_bonus': 50.0,     # MASSIVE bonus for frequent trading
     'gradual_position_bonus': 60.0,     # MASSIVE bonus for gradual building
     'optimal_trade_frequency': 35,      # 35 trades per 100 steps (ultra-frequent)
-    
-    'consistent_volume_bonus': 30.0,    # Extremely strong bonus for consistency
+      'consistent_volume_bonus': 30.0,    # Extremely strong bonus for consistency
     'preferred_volume_range': (0.005, 0.06),  # 0.5-6% of balance per trade (ultra-small)
+    
+    # NEW: Trade management rewards/penalties
+    'trade_limit_penalty_base': -20.0,   # Maximum penalty for opening trades over limit
+    'trade_limit_penalty_scale': 3.0,    # Maximum scale factor as trades approach max
+    'close_bonus_base': 10.0,            # Maximum bonus for closing trades when too many open
+    'close_bonus_scale': 2.0,            # Maximum scale factor for close bonus
     
     'log_rewards': False
 }

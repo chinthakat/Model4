@@ -135,11 +135,13 @@ class TradingEnvironment(gym.Env):
             self.reward_config = reward_config
           # Store action space configuration
         self.use_discretized_actions = use_discretized_actions
-        
-        # Individual trade management system (MUST be before observation space calculation)
+          # Individual trade management system (MUST be before observation space calculation)
         self.MAX_OBSERVED_TRADES = 10  # Maximum trades agent can observe simultaneously for observation space
+        self.MAX_OPEN_TRADES = 10  # Hard limit on number of open trades
+        self.TRADE_LIMIT_THRESHOLD = 5  # Threshold for negative rewards when opening trades
+        self.CLOSE_BONUS_THRESHOLD = 3  # Threshold for close bonus when too many trades open
         self.open_trades = []  # List of individual trade dictionaries
-        self.trade_id_counter = 0  # Unique ID generator for trades        # Define discretized position sizes for small transaction focus
+        self.trade_id_counter = 0  # Unique ID generator for trades# Define discretized position sizes for small transaction focus
         # These are optimized based on the reward analysis
         if ultra_aggressive_small_trades:
             # Ultra-aggressive: Micro position sizes for maximum frequency and minimal risk
@@ -984,14 +986,20 @@ class TradingEnvironment(gym.Env):
         # Update peak equity and drawdown
         if self.equity > self.peak_equity:
             self.peak_equity = self.equity
-        
-        # Calculate reward
+          # Calculate reward
         reward, reward_breakdown = self._calculate_reward_with_breakdown(
             realized_pnl_change=realized_pnl_change,
             commission=commission,
             action_type=action_type
         )
         
+        # Apply trade management rewards/penalties
+        trade_management_reward = self._calculate_trade_management_reward(action_type, is_valid_action)
+        if trade_management_reward != 0:
+            reward += trade_management_reward
+            if 'trade_management' not in reward_breakdown:
+                reward_breakdown['trade_management'] = trade_management_reward
+            
         # Log invalid actions with tracer for analysis
         if not is_valid_action and self.trade_tracer:
             self.trade_tracer.log_invalid_action(
@@ -1003,13 +1011,56 @@ class TradingEnvironment(gym.Env):
                 balance=self.balance,
                 position_size=self._get_net_position_size(),
                 market_timestamp=self._get_current_timestamp(),
-                market_data=market_data,
-                observation_space=self._get_observation_dict(),
-                confidence=confidence,
+                market_data=market_data,                observation_space=self._get_observation_dict(),                confidence=confidence,
                 episode_step=self.current_step,
                 reward_info=reward_breakdown
             )
             
+        return reward
+
+    def _calculate_trade_management_reward(self, action_type: int, is_valid_action: bool) -> float:
+        """
+        Calculate reward/penalty based on trade management rules:
+        1. Negative reward for opening trades when >5 trades open
+        2. Positive reward for closing trades when >3 trades open
+        
+        Args:
+            action_type: The action type taken (1=BUY, 2=SELL, 3+=CLOSE)
+            is_valid_action: Whether the action was successfully executed
+            
+        Returns:
+            Additional reward/penalty value
+        """
+        if not is_valid_action:
+            return 0.0
+            
+        num_open_trades = len(self.open_trades)
+        reward = 0.0
+        
+        # Get configuration values from reward system
+        penalty_base = self.reward_config.get('trade_limit_penalty_base', -10.0)
+        penalty_scale = self.reward_config.get('trade_limit_penalty_scale', 2.0)
+        bonus_base = self.reward_config.get('close_bonus_base', 5.0)
+        bonus_scale = self.reward_config.get('close_bonus_scale', 1.0)
+        
+        # Penalty for opening trades when we already have too many
+        if action_type in [1, 2]:  # BUY or SELL (opening trade)
+            if num_open_trades > self.TRADE_LIMIT_THRESHOLD:
+                # Scale penalty based on how close we are to max limit
+                penalty_scale_factor = (num_open_trades - self.TRADE_LIMIT_THRESHOLD) / (self.MAX_OPEN_TRADES - self.TRADE_LIMIT_THRESHOLD)
+                penalty = penalty_base * (1 + penalty_scale_factor * penalty_scale)
+                reward += penalty
+                self.logger.info(f"Trade limit penalty: {penalty:.2f} (trades: {num_open_trades}/{self.MAX_OPEN_TRADES})")
+        
+        # Bonus for closing trades when we have too many open
+        elif action_type >= 3:  # CLOSE actions
+            if num_open_trades > self.CLOSE_BONUS_THRESHOLD:
+                # More bonus the more trades we have open
+                bonus_scale_factor = (num_open_trades - self.CLOSE_BONUS_THRESHOLD) / (self.MAX_OPEN_TRADES - self.CLOSE_BONUS_THRESHOLD)
+                bonus = bonus_base * (1 + bonus_scale_factor * bonus_scale)
+                reward += bonus
+                self.logger.info(f"Trade close bonus: {bonus:.2f} (trades: {num_open_trades}/{self.MAX_OPEN_TRADES})")
+        
         return reward
 
     def _open_individual_trade(self, side: str, size_btc: float, leverage: float, current_price: float, market_data: Optional[Dict] = None) -> Optional[dict]:
@@ -1025,6 +1076,11 @@ class TradingEnvironment(gym.Env):
         Returns:
             Dictionary representing the new trade, or None if failed
         """
+        # Check if we're at the maximum number of open trades
+        if len(self.open_trades) >= self.MAX_OPEN_TRADES:
+            self.logger.warning(f"Cannot open trade: already at maximum limit of {self.MAX_OPEN_TRADES} open trades")
+            return None
+        
         # Apply BTC minimum size rounding
         size_btc = self._round_to_btc_minimum(size_btc)
         

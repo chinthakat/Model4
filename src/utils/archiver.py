@@ -121,8 +121,7 @@ class TrainingArchiver:
                 self.logger.info(f"✓ Created backup before workspace cleanup")
             else:
                 self.logger.info("No existing logs or models found, skipping backup")
-        
-        # Clean up workspace
+          # Clean up workspace
         self._clean_workspace()
         
         # Clean up old archives
@@ -131,43 +130,39 @@ class TrainingArchiver:
         return archive_path
     
     def _clean_workspace(self):
-        """Clean the workspace by removing or archiving active files"""
-        # Move current session logs to a backup subdirectory
-        logs_dir = Path("logs")
-        if logs_dir.exists():
-            # Create a timestamped backup directory within logs
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_logs_dir = logs_dir / f"previous_session_{timestamp}"
-            backup_logs_dir.mkdir(exist_ok=True)
+        """Clean the workspace by completely removing and recreating logs and models directories"""
+        try:
+            # Remove entire logs directory if it exists
+            logs_dir = Path("logs")
+            if logs_dir.exists():
+                shutil.rmtree(logs_dir)
+                self.logger.info("✓ Completely removed existing logs directory")
             
-            # Move log files to backup directory
-            moved_files = 0
-            for log_file in logs_dir.glob("*.log"):
-                try:
-                    shutil.move(str(log_file), str(backup_logs_dir / log_file.name))
-                    moved_files += 1
-                except Exception as e:
-                    self.logger.warning(f"Failed to move log file {log_file}: {e}")
+            # Remove entire models directory if it exists
+            models_dir = Path("models")
+            if models_dir.exists():
+                shutil.rmtree(models_dir)
+                self.logger.info("✓ Completely removed existing models directory")
             
-            # Move trade directories to backup
-            for trade_dir in logs_dir.glob("trade*"):
-                if trade_dir.is_dir():
-                    try:
-                        shutil.move(str(trade_dir), str(backup_logs_dir / trade_dir.name))
-                        moved_files += 1
-                    except Exception as e:
-                        self.logger.warning(f"Failed to move trade directory {trade_dir}: {e}")
+            # Create fresh empty directories
+            logs_dir.mkdir(exist_ok=True)
+            (logs_dir / "trades").mkdir(exist_ok=True)
+            (logs_dir / "trade_traces").mkdir(exist_ok=True)
+            (logs_dir / "tensorboard").mkdir(exist_ok=True)
+            models_dir.mkdir(exist_ok=True)
             
-            if moved_files > 0:
-                self.logger.info(f"✓ Moved {moved_files} log files/directories to {backup_logs_dir}")
-        
-        # Ensure fresh directories exist
-        Path("logs").mkdir(exist_ok=True)
-        Path("logs/trades").mkdir(exist_ok=True)
-        Path("logs/tensorboard").mkdir(exist_ok=True)
-        Path("models").mkdir(exist_ok=True)
-        
-        self.logger.info("✓ Workspace prepared for new training session")
+            self.logger.info("✓ Created fresh empty logs and models directories")
+            self.logger.info("✓ Workspace prepared for new training session with clean directories")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to clean workspace: {e}")
+            # Fallback: ensure directories exist
+            Path("logs").mkdir(exist_ok=True)
+            Path("logs/trades").mkdir(exist_ok=True)
+            Path("logs/trade_traces").mkdir(exist_ok=True)
+            Path("logs/tensorboard").mkdir(exist_ok=True)
+            Path("models").mkdir(exist_ok=True)
+            self.logger.info("✓ Ensured basic directory structure exists")
 
 def archive_before_training(session_name: Optional[str] = None) -> str:
     """
