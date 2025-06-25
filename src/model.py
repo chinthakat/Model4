@@ -333,15 +333,12 @@ class TradingModel:
                 'net_arch': {
                     'pi': [512, 256, 128],   # Larger actor network for complex policies
                     'vf': [512, 256, 128]    # Larger critic network for value estimation
-                },
-                'activation_fn': torch.nn.ReLU,  # ReLU for faster learning
+                },                'activation_fn': torch.nn.ReLU,  # ReLU for faster learning
                 'optimizer_class': torch.optim.Adam,  # Standard Adam optimizer
                 'optimizer_kwargs': {
                     'eps': 1e-8,
                     'weight_decay': 1e-5    # Light L2 regularization
-                },
-                'features_extractor_class': TradingFeatureExtractor,
-                'features_extractor_kwargs': {'features_dim': 256}
+                }
             },
             
             # Training stability with exploration focus

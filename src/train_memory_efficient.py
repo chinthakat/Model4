@@ -88,10 +88,10 @@ class StreamingDataReader:
     def get_episode_iterator(self) -> Iterator[pd.DataFrame]:
         """
         Returns an iterator that yields batches of data for training.
-        Each complete iteration through this iterator constitutes one episode.
-        """
+        Each complete iteration through this iterator constitutes one episode.        """
         self.logger.info(f"Starting new episode iteration through {self.total_rows} rows")
-          # Use pandas chunking to read the file in batches with explicit column names
+        
+        # Use pandas chunking to read the file in batches with explicit column names
         expected_columns = ['_temp_index', 'open', 'high', 'low', 'close', 'volume', 'timestamp']
         chunk_iter = pd.read_csv(
             self.file_path,
@@ -108,21 +108,21 @@ class StreamingDataReader:
         for chunk in chunk_iter:
             # Standardize column names to match expected format
             chunk = self._standardize_column_names(chunk)
-            
-            # Accumulate data to ensure we have enough for lookback
+              # Accumulate data to ensure we have enough for lookback
             accumulated_data.append(chunk)
-              # Dynamically calculate number of chunks to keep for lookback window
+            
+            # Dynamically calculate number of chunks to keep for lookback window
             # Keep enough chunks to ensure we always have sufficient lookback data
             max_chunks_needed = max(3, (self.lookback_window // self.batch_size) + 2)
             if len(accumulated_data) > max_chunks_needed:
                 accumulated_data.pop(0)
-            
-            # Concatenate accumulated data
+              # Concatenate accumulated data
             if len(accumulated_data) == 1:
                 batch_data = accumulated_data[0]
             else:
                 batch_data = pd.concat(accumulated_data, ignore_index=False)
-              # Only yield if we have enough data for lookback window
+            
+            # Only yield if we have enough data for lookback window
             if len(batch_data) >= self.lookback_window:
                 rows_processed += len(chunk)
                 self.logger.debug(f"Yielding batch: {len(chunk)} new rows, {len(batch_data)} total with lookback")
@@ -256,10 +256,10 @@ class Trainer:
                 self.logger.info(f"{key}: {value}")
         self.logger.info("=== END CONFIGURATION ===")
         self.logger.info("")
-        
-        # Initialize data processor (for feature engineering only)
+          # Initialize data processor (for feature engineering only)
         self.data_processor = DataProcessor(lookback_window=self.config.get('lookback_window', 20))
-          # Training components - Initialize model and environments once
+        
+        # Training components - Initialize model and environments once
         self.model = None
         self.train_env = None
         self.test_env = None
@@ -271,7 +271,8 @@ class Trainer:
         self.total_episodes = self.config.get('total_episodes', 10)
         self.steps_per_episode = 0
         self.total_steps_trained = 0
-          # Generic session names for consistent logging
+        
+        # Generic session names for consistent logging
         self.train_session_name = "training_session"
         self.test_session_name = "testing_session"
         
@@ -301,7 +302,7 @@ class Trainer:
             memory_mb = memory_info.rss / 1024 / 1024
             memory_percent = process.memory_percent()
             
-            self.logger.info(f"Memory usage {context}: {memory_mb:.1f} MB ({memory_percent:.1f}%)")            
+            self.logger.info(f"Memory usage {context}: {memory_mb:.1f} MB ({memory_percent:.1f}%)")
             if memory_mb > 4000:
                 self.logger.warning(f"High memory usage detected: {memory_mb:.1f} MB")
         except Exception as e:
@@ -318,7 +319,7 @@ class Trainer:
             try:
                 from enhanced_reward_configs import ENHANCED_EXPLORATION_CONFIG
                 base_config = ENHANCED_EXPLORATION_CONFIG.copy()
-                self.logger.info("🎯 Using ENHANCED_EXPLORATION_CONFIG for improved SHORT/LONG/CLOSE action balance.")
+                self.logger.info("Using ENHANCED_EXPLORATION_CONFIG for improved SHORT/LONG/CLOSE action balance.")
             except ImportError:
                 self.logger.warning("ENHANCED_EXPLORATION_CONFIG not found, falling back to BALANCED_ENHANCED_CONFIG")
                 base_config = BALANCED_ENHANCED_CONFIG.copy()
@@ -339,7 +340,7 @@ class Trainer:
             try:
                 from enhanced_reward_configs import ENHANCED_EXPLORATION_CONFIG
                 base_config = ENHANCED_EXPLORATION_CONFIG.copy()
-                self.logger.info("🎯 Using ENHANCED_EXPLORATION_CONFIG as fallback for improved action diversity.")
+                self.logger.info("Using ENHANCED_EXPLORATION_CONFIG as fallback for improved action diversity.")
             except ImportError:
                 base_config = BALANCED_ENHANCED_CONFIG.copy()
                 self.logger.info("Using BALANCED_ENHANCED_CONFIG as final fallback.")
@@ -358,9 +359,9 @@ class Trainer:
         self.streaming_reader = StreamingDataReader(
             file_path=consolidated_file_path,
             lookback_window=self.config.get('lookback_window', 20),
-            batch_size=self.config.get('streaming_batch_size', 1000)
-        )
-          # Log data information
+            batch_size=self.config.get('streaming_batch_size', 1000)        )
+        
+        # Log data information
         data_info = self.streaming_reader.get_data_info()
         self.logger.info(f"Data file info: {data_info['total_rows']} rows, {len(data_info['columns'])} columns")
         
@@ -415,9 +416,9 @@ class Trainer:
                 )
                 self.logger.info("Test environment created successfully.")
             else:
-                self.logger.debug(f"Updating test environment data for episode {episode_num}, batch {batch_num}")
-                # Use the new update_data method to maintain model continuity
-                self.test_env.update_data(test_data, episode_num, batch_num)                # Update trade logger session
+                self.logger.debug(f"Updating test environment data for episode {episode_num}, batch {batch_num}")                # Use the new update_data method to maintain model continuity
+                self.test_env.update_data(test_data, episode_num, batch_num)
+                # Update trade logger session
                 if self.test_env.trade_logger:
                     self.test_env.trade_logger.session_name = test_session
                 self.logger.debug("Test environment data updated.")
@@ -590,13 +591,13 @@ class Trainer:
                 )
                 self.logger.info("Test environment created successfully.")
             else:
-                self.logger.debug(f"Updating test environment data for episode {self.current_episode}, batch {self.current_batch}")
-                # Use the new update_data method to maintain model continuity
+                self.logger.debug(f"Updating test environment data for episode {self.current_episode}, batch {self.current_batch}")                # Use the new update_data method to maintain model continuity
                 self.test_env.update_data(test_data, self.current_episode, self.current_batch)
                 # Update trade logger session
                 if self.test_env.trade_logger:
                     self.test_env.trade_logger.session_name = test_session
-                self.logger.debug("Test environment data updated.")            
+                self.logger.debug("Test environment data updated.")
+            
             self.logger.debug(f"Environments ready - Train: {len(train_data)} steps, Test: {len(test_data)} steps")
             
         except Exception as e:
@@ -609,8 +610,7 @@ class Trainer:
             self.logger.error("Model is not initialized, cannot train")
             return
         
-        try:
-            # Number of steps to train on this batch/episode
+        try:            # Number of steps to train on this batch/episode
             train_steps = self.config.get('steps_per_episode', 500000)  # Use steps_per_episode from config
             
             self.logger.info(f"Training model on current batch for {train_steps} steps...")
@@ -633,7 +633,9 @@ class Trainer:
             eval_metrics = self.model.evaluate(
                 eval_env=self.test_env,
                 n_eval_episodes=1,
-                deterministic=True            )            
+                deterministic=True
+            )
+            
             mean_reward = eval_metrics.get('mean_reward', 0.0)
             self.logger.info(f"Evaluation completed. Mean reward: {mean_reward:.4f}")
         except Exception as e:

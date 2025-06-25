@@ -302,7 +302,7 @@ class TradingEnvironment(gym.Env):
         if self.liquidation_tracker:
             self.liquidation_tracker.open_trades.clear()
         self.open_trades = []
-        self.trade_id_counter = 0# Reset additional tracking attributes
+        self.trade_id_counter = 0  # Reset additional tracking attributes
         self.losing_trades = 0
         self.total_commission = 0.0
         self.max_profit = 0.0
@@ -354,7 +354,7 @@ class TradingEnvironment(gym.Env):
         if self.liquidation_tracker:
             self.liquidation_tracker.open_trades.clear()
         self.open_trades = []
-        self.trade_id_counter = 0# Reset additional tracking attributes
+        self.trade_id_counter = 0  # Reset additional tracking attributes
         self.losing_trades = 0
         self.total_commission = 0.0
         self.max_profit = 0.0
@@ -511,7 +511,7 @@ class TradingEnvironment(gym.Env):
         
         return obs, reward, terminated, truncated, info
     
-    def _calculate_reward_with_breakdown(self, realized_pnl_change: float, commission: float = 0.0, action_type: int = 0) -> tuple:
+    def _calculate_reward_with_breakdown(self, realized_pnl_change: float, commission: float = 0.0, action_type: int = 0, trade_closed_this_step: bool = False) -> tuple:
         """
         Calculate comprehensive reward using the EnhancedRewardCalculator and return breakdown
         
@@ -519,6 +519,7 @@ class TradingEnvironment(gym.Env):
             realized_pnl_change: Change in realized P&L from this action
             commission: Commission paid for this action
             action_type: Action taken (0=hold, 1=buy, 2=sell, 3=close)
+            trade_closed_this_step: Whether a trade was actually closed in this step
             
         Returns:
             Tuple of (reward, reward_breakdown) using comprehensive reward system
@@ -551,7 +552,8 @@ class TradingEnvironment(gym.Env):
                 action=action_type,
                 leverage=leverage,
                 commission_cost=commission,
-                market_data=market_data
+                market_data=market_data,
+                trade_closed_this_step=trade_closed_this_step
             )
               # Log reward breakdown for debugging if enabled (less verbose)
             if self.reward_config.get('log_rewards', False) and (
@@ -878,14 +880,17 @@ class TradingEnvironment(gym.Env):
         is_valid_action = False
         commission = 0.0
         reward_breakdown = {}
-        
+        trade_closed_this_step = False  # Flag for proper reward calculation
+
         # Execute the action based on type
         if action_type == 0:  # HOLD
             action_str = "HOLD"
             trade_reason = "Hold position"
             is_valid_action = True
-            
+            self.logger.info("Action: HOLD")
+
         elif action_type == 1:  # BUY (LONG)
+            self.logger.info(f"Action: Attempting BUY with size_pct={size_pct:.4f}, confidence={confidence:.2f}")
             if size_pct > 0:
                 # Calculate trade size more conservatively
                 # size_pct is percentage of balance to risk, confidence is leverage
@@ -911,8 +916,10 @@ class TradingEnvironment(gym.Env):
                 action_str = "HOLD"
                 trade_reason = "Buy signal with zero size treated as Hold"
                 is_valid_action = True
-                
+                self.logger.info("Action: BUY with zero size, treated as HOLD.")
+
         elif action_type == 2:  # SELL (SHORT)
+            self.logger.info(f"Action: Attempting SELL with size_pct={size_pct:.4f}, confidence={confidence:.2f}")
             if size_pct > 0:
                 # Calculate trade size
                 margin_amount = self.balance * size_pct  # Amount of balance to use as margin
@@ -938,10 +945,12 @@ class TradingEnvironment(gym.Env):
                 action_str = "HOLD"
                 trade_reason = "Sell signal with zero size treated as Hold"
                 is_valid_action = True
-                
+                self.logger.info("Action: SELL with zero size, treated as HOLD.")
+
         elif action_type >= 3:  # CLOSE_TRADE_N actions
             close_trade_index = action_type - 3  # Convert to 0-based index
-            
+            self.logger.info(f"Action: Attempting CLOSE trade at index {close_trade_index}")
+
             if close_trade_index < len(self.open_trades):
                 # Close the specific trade
                 close_info = self._close_individual_trade(close_trade_index, current_price, market_data)
@@ -952,22 +961,25 @@ class TradingEnvironment(gym.Env):
                     is_valid_action = True
                     realized_pnl_change = close_info["realized_pnl"]
                     commission = close_info["total_commission"] - close_info.get("entry_commission", 0)  # Only exit commission
+                    trade_closed_this_step = True
                     
                     self.logger.info(f"CLOSE executed: {close_info['trade_id']} with {close_info['realized_pnl']:+.2f} P&L")
                 else:
                     action_str = f"CLOSE_TRADE_{close_trade_index + 1}_FAILED"
                     trade_reason = "Failed to close trade"
                     is_valid_action = False
+                    self.logger.warning(f"CLOSE failed for trade index {close_trade_index}")
             else:
                 action_str = f"CLOSE_TRADE_{close_trade_index + 1}_INVALID"
                 trade_reason = f"No trade in slot {close_trade_index + 1} to close"
                 is_valid_action = False
-                self.logger.debug(f"Cannot close trade slot {close_trade_index + 1}: only {len(self.open_trades)} trades open")
+                self.logger.warning(f"Action: CLOSE trade at index {close_trade_index} is invalid, no trade exists.")
         else:
             # Handle invalid action types
             action_str = "INVALID_ACTION"
             trade_reason = f"Invalid action type: {action_type}"
             is_valid_action = False
+            self.logger.error(f"Action: {trade_reason}")
         
         # Update equity calculation with individual trades
         total_unrealized_pnl = self._get_total_unrealized_pnl()
@@ -990,7 +1002,8 @@ class TradingEnvironment(gym.Env):
         reward, reward_breakdown = self._calculate_reward_with_breakdown(
             realized_pnl_change=realized_pnl_change,
             commission=commission,
-            action_type=action_type
+            action_type=action_type,
+            trade_closed_this_step=trade_closed_this_step
         )
         
         # Apply trade management rewards/penalties

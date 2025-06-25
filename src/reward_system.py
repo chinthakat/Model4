@@ -55,6 +55,9 @@ class EnhancedRewardCalculator:
         self.HOLD_POSITION_REWARD = self.config.get('hold_position_reward', 0.01) # Lower reward for holding
         self.NO_POSITION_HOLD_PENALTY = self.config.get('no_position_hold_penalty', -1.0) # More penalty for inaction
 
+        # === NEW: Penalty for zero-size actions ===
+        self.ZERO_SIZE_ACTION_PENALTY = self.config.get('zero_size_action_penalty', -10.0) # Penalty for BUY/SELL actions with zero size
+
         # === NEW: Bonus for closing a trade ===
         self.CLOSE_ACTION_BONUS = self.config.get('close_action_bonus', 25.0) # A significant bonus for closing a trade
 
@@ -150,7 +153,9 @@ class EnhancedRewardCalculator:
                         leverage: float = 1.0,
                         commission_cost: float = 0.0,
                         market_data: Dict = None,
-                        stop_loss_hit: bool = False) -> Tuple[float, Dict]:
+                        stop_loss_hit: bool = False,
+                        trade_closed_this_step: bool = False,
+                        size_pct: float = 0.0) -> Tuple[float, Dict]:
         """
         Calculate enhanced point-based reward
         
@@ -163,6 +168,8 @@ class EnhancedRewardCalculator:
             commission_cost: Commission paid for this action
             market_data: Dictionary with market indicators (sma_short, sma_long, rsi, etc.)
             stop_loss_hit: Whether a stop loss was triggered this step
+            trade_closed_this_step: Whether a trade was actually closed in this step
+            size_pct: The percentage of balance for the action size
             
         Returns:
             Tuple of (total_reward_points, detailed_breakdown_dict)
@@ -171,16 +178,27 @@ class EnhancedRewardCalculator:
         if self.initial_balance is None:
             self.initial_balance = balance
             self.episode_start_balance = balance
-            self.peak_balance = balance
-        
+            self.peak_balance = balance        
         # Update balance tracking
         self.balance_history.append(balance)
-        self.peak_balance = max(self.peak_balance, balance)        # CORRECTED: Enhanced position closing detection
+        self.peak_balance = max(self.peak_balance, balance)
+        
+        # TEMPORARY FIX: Disable faulty position closing detection
+        # The original logic incorrectly triggers close bonuses when net position size changes
+        # This causes realized_pnl_points and close_action_bonus to be triggered without actual trade closures
+        # TODO: Implement proper trade closure tracking via environment communication
         was_position_open = self.position_entry_price is not None and self.position_entry_size is not None
-        is_position_closed = (
-            (was_position_open and position_size == 0) or  # Position externally closed
-            (self.last_action != 0 and action == 0 and position_size == 0)  # Explicit close action
-        )        # Initialize reward breakdown
+        
+        # PROPER FIX: Use explicit trade closure indication from the environment
+        is_position_closed = trade_closed_this_step
+
+        # Original buggy logic (commented out):
+        # is_position_closed = (
+        #     (was_position_open and position_size == 0) or  # Position externally closed
+        #     (self.last_action != 0 and action == 0 and position_size == 0)  # Explicit close action
+        # )
+        
+        # Initialize reward breakdown
         reward_breakdown = {
             'unrealized_pnl_points': 0.0,
             'realized_pnl_points': 0.0,
@@ -201,9 +219,16 @@ class EnhancedRewardCalculator:
             'volume_consistency_bonus': 0.0,
             # CRITICAL FIX: Time-based holding penalty
             'holding_time_penalty': 0.0,
+            'zero_size_action_penalty': 0.0,
             'total_points': 0.0
         }
         
+        # === NEW: PENALTY FOR ZERO-SIZE ACTIONS ===
+        zero_size_penalty = 0.0
+        if action in [1, 2] and size_pct == 0.0:
+            zero_size_penalty = self.ZERO_SIZE_ACTION_PENALTY
+        reward_breakdown['zero_size_action_penalty'] = zero_size_penalty
+
         # === 1. UNREALIZED P&L POINTS (Risk-Adjusted) ===
         unrealized_points = self._calculate_unrealized_pnl_points(
             current_price, position_size, balance
@@ -292,7 +317,8 @@ class EnhancedRewardCalculator:
             exploration_bonuses['action_specific_bonus'] +
             exploration_bonuses['diversity_bonus'] +
             exploration_bonuses['exploration_bonus'] +
-            exploration_bonuses['close_quality_bonus']
+            exploration_bonuses['close_quality_bonus'] +
+            zero_size_penalty
         )
         
         reward_breakdown['total_points'] = total_reward
